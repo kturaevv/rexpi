@@ -1,0 +1,12 @@
+{
+  "name": "jsvox",
+  "version": "1.0.0",
+  "description": "<h1>Wgpu stuff</h1:>: ![1](https://geps.dev/progress/1)",
+  "main": "dev_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
