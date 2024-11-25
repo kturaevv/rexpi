@@ -11,5 +11,9 @@
   "license": "ISC",
   "devDependencies": {
     "@webgpu/types": "^0.1.51"
+  },
+  "compilerOptions": {
+    "checkJs": true,
+    "typeRoots": ["./node_modules/@webgpu/types/dist"]
   }
 }

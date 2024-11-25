@@ -1,161 +1,127 @@
+/// <reference types="@webgpu/types" />
+/// <reference path="../node_modules/@webgpu/types/dist/index.d.ts" />
+
 function assert(condition, message) {
     if (!condition) throw ("Assertion failed:" + (message || ""));
 }
 
 async function main() {
-    const adapter = await navigator.gpu?.requestAdapter();
-    assert(adapter, "WebGPU adapter not found");
+    const adapter = await navigator.gpu.requestAdapter();
+    assert(adapter, "Adapter not found");
 
     const device = await adapter.requestDevice();
-    assert(device, "WebGPU device not found");
+    assert(device, "Device not found!");
 
-    const canvas = document.querySelector("canvas");
-    assert(canvas, "Canvas element not found");
+    const shader_file = await fetch("shader.wgsl")
+        .then((res) => res.text())
+        .then((text) => text)
+        .catch((e) =>
+            console.log("Catched error while loading shader module!", e)
+        );
+    assert(typeof shader_file === "string", "Shader module is not a string!");
 
-    canvas.width = canvas.clientWidth * devicePixelRatio;
-    canvas.height = canvas.clientHeight * devicePixelRatio;
+    const shader_module = device.createShaderModule({
+        code: shader_file,
+    });
 
+    const canvas = document.getElementById("canvas");
+    assert(canvas, "Canvas not found!");
+
+    /** @type {GPUCanvasContext} **/
     const context = canvas.getContext("webgpu");
-    assert(context, "WebGPU context not found");
+    assert(context, "Context not found!");
+    assert(context instanceof GPUCanvasContext, "Context has wrong type");
 
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     context.configure({
-        device,
-        format: presentationFormat,
+        device: device,
+        format: navigator.gpu.getPreferredCanvasFormat(),
     });
 
-    const shaders = `
-   struct VertexOut {
-       @builtin(position) position : vec4f,
-       @location(0) color : vec4f
-   }
-   @vertex
-   fn vertex_main(
-       @location(0) position: vec4f,
-       @location(1) color: vec4f) -> VertexOut
-   {
-       var output : VertexOut;
-       output.position = position;
-       output.color = color;
-       return output;
-   }
-   @fragment
-   fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
-   {
-       return fragData.color;
-   }
-   `;
+    // Prepare data
+    const buf = new ArrayBuffer((4 + 4) * 4 * 3); // (color + ) * 4 bytes * 3 vertices
+    const gpu_data = new Float32Array(buf);
+    {
+        gpu_data.set([0.0, 0.6, 0, 1], 0); // Vertex
+        gpu_data.set([1, 0, 0, 1], 4); // Color
+    }
+    {
+        gpu_data.set([-0.5, -0.6, 0, 1], 8);
+        gpu_data.set([0, 1, 0, 1], 12);
+    }
+    {
+        gpu_data.set([0.5, -0.6, 0, 1], 16);
+        gpu_data.set([0, 0, 1, 1], 20);
+    }
 
-    const shaderModule = device.createShaderModule({
-        code: shaders,
-    });
-    assert(shaderModule, "Failed to create shader module");
-
-    const vertices = new Float32Array([
-        0.0,
-        0.6,
-        0,
-        1,
-        1,
-        0,
-        0,
-        1,
-        -0.5,
-        -0.6,
-        0,
-        1,
-        0,
-        1,
-        0,
-        1,
-        0.5,
-        -0.6,
-        0,
-        1,
-        0,
-        0,
-        1,
-        1,
-    ]);
-
-    const vertexBuffer = device.createBuffer({
-        size: vertices.byteLength,
+    const vertex_buffer = device.createBuffer({
+        size: gpu_data.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    assert(vertexBuffer, "Failed to create vertex buffer");
+    const gpu_vertex_state = [
+        {
+            arrayStride: 32,
+            stepMode: "vertex",
+            attributes: [
+                {
+                    format: "float32x4", // color
+                    offset: 0,
+                    shaderLocation: 0,
+                },
+                {
+                    format: "float32x4", // position
+                    offset: 4 * 4,
+                    shaderLocation: 1,
+                },
+            ],
+        },
+    ];
 
-    device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length);
-
-    const vertexBuffers = [{
-        attributes: [
-            {
-                shaderLocation: 0, // position
-                offset: 0,
-                format: "float32x4",
-            },
-            {
-                shaderLocation: 1, // color
-                offset: 16,
-                format: "float32x4",
-            },
-        ],
-        arrayStride: 32,
-        stepMode: "vertex",
-    }];
-
-    const pipelineDescriptor = {
+    const pipeline_descriptor = {
         vertex: {
-            module: shaderModule,
-            entryPoint: "vertex_main",
-            buffers: vertexBuffers,
+            module: shader_module,
+            entrypoint: "vs_main",
+            buffers: gpu_vertex_state,
         },
         fragment: {
-            module: shaderModule,
-            entryPoint: "fragment_main",
             targets: [{
-                format: presentationFormat,
+                format: navigator.gpu.getPreferredCanvasFormat(),
             }],
+            module: shader_module,
+            entrypoint: "fs_main",
         },
-        primitive: {
-            topology: "triangle-list",
-        },
+        primitive: { topology: "triangle-list" },
         layout: "auto",
     };
 
-    const renderPipeline = device.createRenderPipeline(pipelineDescriptor);
-    assert(renderPipeline, "Failed to create render pipeline");
+    const pipeline = device.createRenderPipeline(pipeline_descriptor);
 
-    const commandEncoder = device.createCommandEncoder();
-    assert(commandEncoder, "Failed to create command encoder");
-
-    const textureView = context.getCurrentTexture().createView();
-    assert(textureView, "Failed to create texture view");
+    const command_encoder = device.createCommandEncoder();
 
     const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
-    const renderPassDescriptor = {
-        colorAttachments: [{
-            clearValue: clearColor,
-            loadOp: "clear",
-            storeOp: "store",
-            view: textureView,
-        }],
+
+    const render_pass_descriptor = {
+        colorAttachments: [
+            {
+                clearValue: clearColor,
+                loadOp: "clear",
+                storeOp: "store",
+                view: context.getCurrentTexture().createView(),
+            },
+        ],
     };
 
-    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    assert(passEncoder, "Failed to begin render pass");
-
-    passEncoder.setPipeline(renderPipeline);
-    passEncoder.setVertexBuffer(0, vertexBuffer);
-    passEncoder.draw(3);
-    passEncoder.end();
-
-    const commandBuffer = commandEncoder.finish();
-    assert(commandBuffer, "Failed to finish command encoder");
-
-    device.queue.submit([commandBuffer]);
+    device.queue.writeBuffer(vertex_buffer, 0, gpu_data, 0, gpu_data.length);
+    {
+        const pass_encoder = command_encoder.beginRenderPass(
+            render_pass_descriptor,
+        );
+        pass_encoder.setPipeline(pipeline);
+        pass_encoder.setVertexBuffer(0, vertex_buffer);
+        pass_encoder.draw(3);
+        pass_encoder.end();
+    }
+    device.queue.submit([command_encoder.finish()]);
 }
 
-console.log("Starting WebGPU!");
-
-await main();
+main();
