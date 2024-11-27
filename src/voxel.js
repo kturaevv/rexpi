@@ -6,8 +6,12 @@ class Position {
 }
 
 class Voxel {
-    static get POSITION_OFFSET() { return 0; };
-    static get COLOR_OFFSET() { return 12; };
+    static get POSITION_OFFSET() {
+        return 0;
+    }
+    static get COLOR_OFFSET() {
+        return 12;
+    }
 
     constructor(pos, color) {
         let pos_size, pos_len = [3, 3];
@@ -21,4 +25,3 @@ class Voxel {
 }
 
 console.log(Position(2, 3, 4));
-
