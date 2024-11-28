@@ -1,4 +1,3 @@
-import assert from "./assert.js";
 
 export default class BallData {
     // x y z w dx dy dz dw r of size f32
@@ -58,3 +57,50 @@ export default class BallData {
         ];
     }
 }
+
+
+
+// ... in main
+
+const NUM_BALLS = 10;
+const ball_data = new BallData(NUM_BALLS);
+for (let i = 0; i < NUM_BALLS; i++) {
+    ball_data.add(
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random(),
+        Math.random(),
+    );
+}
+
+
+const vertex_buffer = device.createBuffer({
+    size: ball_data.data.byteLength,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+
+device.queue.writeBuffer(
+    vertex_buffer,
+    0,
+    ball_data.data,
+);
+
+const pipeline_descriptor = {
+    vertex: {
+        module: shader_module,
+        entrypoint: "vs_main",
+        buffers: ball_data.get_gpu_vertex_state(),
+    },
+    fragment: {
+        module: shader_module,
+        entrypoint: "fs_main",
+        targets: [{
+            format: navigator.gpu.getPreferredCanvasFormat(),
+        }],
+    },
+    primitive: { topology: "point-list" },
+    layout: "auto",
+};

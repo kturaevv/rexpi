@@ -1,5 +1,4 @@
 /// <reference types="@webgpu/types" />
-/// <reference path="../node_modules/@webgpu/types/dist/index.d.ts" />
 import assert from "./assert.js";
 import BallData from "./ball.js";
 
@@ -45,8 +44,9 @@ async function main() {
     const shader_module = await load_shader_module(device);
 
     // Prepare data
-    const ball_data = new BallData(10);
-    for (let i = 0; i < 10; i++) {
+    const NUM_BALLS = 10;
+    const ball_data = new BallData(NUM_BALLS);
+    for (let i = 0; i < NUM_BALLS; i++) {
         ball_data.add(
             Math.random(),
             Math.random(),
@@ -63,7 +63,12 @@ async function main() {
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    console.log(ball_data.get_gpu_vertex_state());
+    device.queue.writeBuffer(
+        vertex_buffer,
+        0,
+        ball_data.data,
+    );
+    console.log(ball_data);
 
     const pipeline_descriptor = {
         vertex: {
@@ -78,8 +83,9 @@ async function main() {
                 format: navigator.gpu.getPreferredCanvasFormat(),
             }],
         },
-        primitive: { topology: "point-list" },
+        primitive: { topology: "triangle-list" },
         layout: "auto",
+        cullMode: "none"
     };
 
     const pipeline = device.createRenderPipeline(pipeline_descriptor);
@@ -99,20 +105,13 @@ async function main() {
         ],
     };
 
-    device.queue.writeBuffer(
-        vertex_buffer,
-        0,
-        ball_data.data,
-        0,
-        ball_data.data.length,
-    );
     {
         const pass_encoder = command_encoder.beginRenderPass(
             render_pass_descriptor,
         );
         pass_encoder.setPipeline(pipeline);
         pass_encoder.setVertexBuffer(0, vertex_buffer);
-        pass_encoder.draw(10);
+        pass_encoder.draw(3, NUM_BALLS);
         pass_encoder.end();
     }
     device.queue.submit([command_encoder.finish()]);
