@@ -1,5 +1,5 @@
 /// <reference types="@webgpu/types" />
-import assert from "./assert.js";
+import { assert, random } from "./utils.js";
 import BallData from "./ball.js";
 
 async function init() {
@@ -44,17 +44,17 @@ async function main() {
     const shader_module = await load_shader_module(device);
 
     // Prepare data
-    const NUM_BALLS = 10;
+    const NUM_BALLS = 100;
     const ball_data = new BallData(NUM_BALLS);
     for (let i = 0; i < NUM_BALLS; i++) {
         ball_data.add(
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            Math.random(),
+            random(),
+            random(),
+            random(),
+            random(),
+            random(),
+            random(),
+            0.1,
         );
     }
 

@@ -1,8 +1,7 @@
 struct VertexOutput {
     @builtin(position) clip_pos: vec4<f32>,
-    @location(0) pos: vec2<f32>,    // vertex position in screen space
-    @location(1) center: vec2<f32>,
-    @location(2) radius: f32,
+    @location(0) center: vec2<f32>,
+    @location(1) radius: f32,
 }
 
 @vertex
@@ -17,22 +16,22 @@ fn vs_main(
     let vertices = array<vec2<f32>, 3>(
         vec2(position.x, position.y + r_sqrt3), // top
         vec2(position.x - r_sqrt3, position.y - radius), // bottom left
-        vec2(position.x + r_sqrt3, position.y + radius), // bottom right
+        vec2(position.x + r_sqrt3, position.y - radius), // bottom right
     );
 
     var output: VertexOutput;
+
     output.clip_pos = vec4(vertices[vertexIndex], position.z, 1.0);
-    output.pos = vertices[vertexIndex];
     output.center = position.xy;
     output.radius = radius;
     return output;
 }
 
 @fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let dist = abs(distance(in.clip_pos.xy, in.center));
-    if dist < in.radius {
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    let dist = distance(input.center, input.clip_pos.xy);
+    if dist < input.radius {
         discard;
     }
-    return vec4(1.0, 1.0, 1.0, 1.0);
+    return vec4(1.0, 1.0, 1.0, 0.0);
 }

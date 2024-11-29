@@ -1,4 +1,4 @@
-import assert from "./assert.js";
+import { assert } from "./utils.js";
 
 export default class BallData {
     // x y z w dx dy dz dw r of size f32
