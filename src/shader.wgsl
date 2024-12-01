@@ -1,8 +1,11 @@
 struct VertexOutput {
-    @builtin(position) clip_pos: vec4<f32>,
+    @builtin(position) pixel_pos: vec4<f32>,
     @location(0) center: vec2<f32>,
     @location(1) radius: f32,
 }
+
+const VIEWPORT_SIZE = vec2<f32>(1600.0, 519.0);
+const ASPECT: f32 = VIEWPORT_SIZE.x / VIEWPORT_SIZE.y;
 
 @vertex
 fn vs_main(
@@ -11,27 +14,51 @@ fn vs_main(
     @location(1) velocity: vec4<f32>,
     @location(2) radius: f32,
 ) -> VertexOutput {
-    let r_sqrt3 = radius * sqrt(3);
-
-    let vertices = array<vec2<f32>, 3>(
-        vec2(position.x, position.y + r_sqrt3), // top
-        vec2(position.x - r_sqrt3, position.y - radius), // bottom left
-        vec2(position.x + r_sqrt3, position.y - radius), // bottom right
+    var out: VertexOutput;
+    out.center.x = position.x * ASPECT;
+    out.center.y = position.y;
+    out.radius = radius;
+    // r = (x/2)/sqrt3
+    // x/2 = r*sqrt3
+    // x = r*sqrt3*2 - side len
+    // x = r*sqrt3   - half-side len
+    let half_side = radius * sqrt(3);
+    let vertex_center_edge = sqrt(3 * pow(radius, 2) + pow(half_side, 2));
+    var vertices = array<vec2<f32>, 3>(
+        vec2(out.center.x, out.center.y + vertex_center_edge), // top
+        vec2(out.center.x - half_side, out.center.y - radius), // bottom left
+        vec2(out.center.x + half_side, out.center.y - radius), // bottom right
     );
 
-    var output: VertexOutput;
+    for (var i: i32 = 0; i < 3; i++) {
+        vertices[i].x = vertices[i].x / ASPECT;
+    }
 
-    output.clip_pos = vec4(vertices[vertexIndex], position.z, 1.0);
-    output.center = position.xy;
-    output.radius = radius;
-    return output;
+    out.pixel_pos = vec4(vertices[vertexIndex], position.z, 1.0);
+    return out;
+}
+
+fn to_pixel_space(data: vec2<f32>) -> vec2<f32> {
+    let out = vec2<f32>(
+        (data.x / ASPECT + 1.0) * 0.5 * VIEWPORT_SIZE.x,
+        abs(data.y - 1.0) * 0.5 * VIEWPORT_SIZE.y,
+    );
+    return out;
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let dist = distance(input.center, input.clip_pos.xy);
-    if dist < input.radius {
-        discard;
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let center = to_pixel_space(in.center);
+    let pixel_to_center_distance = distance(center, in.pixel_pos.xy);
+
+    if pixel_to_center_distance <= 1 {
+        return vec4(0.0, 0.0, 0.0, 0.0);
     }
-    return vec4(1.0, 1.0, 1.0, 0.0);
+
+    if pixel_to_center_distance > in.radius * VIEWPORT_SIZE.y * 0.5 {
+        return vec4(1.0, 0.0, 0.0, 1.0);
+    }
+
+    return vec4(0.0, 1.0, 0.0, 1.0);
 }
+

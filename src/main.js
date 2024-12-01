@@ -12,6 +12,14 @@ async function init() {
     const canvas = document.getElementById("canvas");
     assert(canvas, "Canvas not found!");
 
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    console.log(canvas.width, canvas.height);
+
+    for (let i = 0; i < 100; i++) {
+        console.log((random() + 1.0) * 0.5 * canvas.width, (random() - 1.0) * 0.5 * canvas.height);
+    }
+
     /** @type {GPUCanvasContext} **/
     const context = canvas.getContext("webgpu");
     assert(context, "Context not found!");
@@ -20,6 +28,10 @@ async function init() {
     context.configure({
         device: device,
         format: navigator.gpu.getPreferredCanvasFormat(),
+        size: {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+        },
     });
 
     return [device, context];
@@ -54,7 +66,7 @@ async function main() {
             random(),
             random(),
             random(),
-            0.1,
+            0.1
         );
     }
 
