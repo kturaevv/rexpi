@@ -4,8 +4,12 @@ struct VertexOutput {
     @location(1) radius: f32,
 }
 
-const VIEWPORT_SIZE = vec2<f32>(1600.0, 519.0);
-const ASPECT: f32 = VIEWPORT_SIZE.x / VIEWPORT_SIZE.y;
+@group(0) @binding(0) var<uniform> VIEWPORT_SIZE: vec2<f32>;
+
+fn get_aspect() -> f32 {
+    return VIEWPORT_SIZE.x / VIEWPORT_SIZE.y;
+}
+
 
 @vertex
 fn vs_main(
@@ -15,7 +19,7 @@ fn vs_main(
     @location(2) radius: f32,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.center.x = position.x * ASPECT;
+    out.center.x = position.x * get_aspect();
     out.center.y = position.y;
     out.radius = radius;
     // r = (x/2)/sqrt3
@@ -31,7 +35,7 @@ fn vs_main(
     );
 
     for (var i: i32 = 0; i < 3; i++) {
-        vertices[i].x = vertices[i].x / ASPECT;
+        vertices[i].x = vertices[i].x / get_aspect();
     }
 
     out.pixel_pos = vec4(vertices[vertexIndex], position.z, 1.0);
@@ -40,7 +44,7 @@ fn vs_main(
 
 fn to_pixel_space(data: vec2<f32>) -> vec2<f32> {
     let out = vec2<f32>(
-        (data.x / ASPECT + 1.0) * 0.5 * VIEWPORT_SIZE.x,
+        (data.x / get_aspect() + 1.0) * 0.5 * VIEWPORT_SIZE.x,
         abs(data.y - 1.0) * 0.5 * VIEWPORT_SIZE.y,
     );
     return out;

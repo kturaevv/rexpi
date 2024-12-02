@@ -16,10 +16,6 @@ async function init() {
     canvas.height = canvas.clientHeight;
     console.log(canvas.width, canvas.height);
 
-    for (let i = 0; i < 100; i++) {
-        console.log((random() + 1.0) * 0.5 * canvas.width, (random() - 1.0) * 0.5 * canvas.height);
-    }
-
     /** @type {GPUCanvasContext} **/
     const context = canvas.getContext("webgpu");
     assert(context, "Context not found!");
@@ -82,6 +78,43 @@ async function main() {
     );
     console.log(ball_data);
 
+    // Other buffers
+    const viewport_buffer = device.createBuffer({
+        label: "Viewport uniform",
+        size: 2 * 4, // 2 floats
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+        mappedAtCreation: false,
+    });
+    device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([canvas.width, canvas.height]));
+
+    const bind_group_layout = device.createBindGroupLayout({
+        label: "Bind group layout",
+        entries: [
+            { // Bind group layout entry
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }, // is it required?
+            },
+        ]
+    });
+
+    const bind_group = device.createBindGroup({
+        label: "Bind group",
+        layout: bind_group_layout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: viewport_buffer,
+                }
+            },
+        ]
+    });
+
+    const pipeline_layout = device.createPipelineLayout({
+        bindGroupLayouts: [bind_group_layout],
+    });
+
     const pipeline_descriptor = {
         vertex: {
             module: shader_module,
@@ -96,7 +129,7 @@ async function main() {
             }],
         },
         primitive: { topology: "triangle-list" },
-        layout: "auto",
+        layout: pipeline_layout,
         cullMode: "none"
     };
 
@@ -123,6 +156,7 @@ async function main() {
         );
         pass_encoder.setPipeline(pipeline);
         pass_encoder.setVertexBuffer(0, vertex_buffer);
+        pass_encoder.setBindGroup(0, bind_group);
         pass_encoder.draw(3, NUM_BALLS);
         pass_encoder.end();
     }
