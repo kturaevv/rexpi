@@ -27,7 +27,7 @@ fn vs_main(
     // x = r*sqrt3*2 - side len
     // x = r*sqrt3   - half-side len
     let half_side = radius * sqrt(3);
-    let vertex_center_edge = sqrt(3 * pow(radius, 2) + pow(half_side, 2));
+    let vertex_center_edge = sqrt(pow(radius, 2) + pow(half_side, 2));
     var vertices = array<vec2<f32>, 3>(
         vec2(out.center.x, out.center.y + vertex_center_edge), // top
         vec2(out.center.x - half_side, out.center.y - radius), // bottom left
