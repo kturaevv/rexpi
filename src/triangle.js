@@ -1,6 +1,10 @@
 export default function () { throw new Error("Unimplemented!!!"); }
 
-export async function render(device, adapter) {
+/**
+ * @param {GPUDevice} device 
+ * @param {GPUCanvasContext} context
+ * */
+export async function render(device, context) {
 
     const shader = `
     struct VertexOut {
@@ -20,14 +24,6 @@ export async function render(device, adapter) {
     }
     `
     const shader_module = device.createShaderModule({ code: shader, });
-
-    const canvas = document.getElementById("canvas");
-
-    const context = canvas.getContext('webgpu');
-    context.configure({
-        device: device,
-        format: navigator.gpu.getPreferredCanvasFormat(),
-    });
 
     const triangle_vertices = new Float32Array([
         0.0, 0.8,
