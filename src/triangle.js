@@ -9,18 +9,29 @@ export async function render(device, context) {
     const shader = `
     struct VertexOut {
         @builtin(position) pos: vec4<f32>,
+        @location(0) color: vec4<f32>
     }
 
+    const COLOR = array<vec4<f32>, 3>(
+        vec4(1, 0, 0, 1),
+        vec4(0, 1, 0, 1),
+        vec4(0, 0, 1, 1),
+    );  
+
     @vertex
-    fn vs_main(@location(0) pos: vec2<f32>) -> VertexOut {
+    fn vs_main(
+        @builtin(vertex_index) idx: u32,
+        @location(0) pos: vec2<f32>
+    ) -> VertexOut {
         var out: VertexOut;
         out.pos = vec4(pos.xy, 0, 1); 
+        out.color = COLOR[idx];
         return out;
     }
 
     @fragment
     fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-        return vec4(1.0, 0, 0, 0.0);
+        return in.color;
     }
     `
     const shader_module = device.createShaderModule({ code: shader, });
