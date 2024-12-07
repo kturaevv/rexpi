@@ -1,7 +1,9 @@
 /// <reference types="@webgpu/types" />
 import { assert } from "./utils.js";
-import { render as triangle_render } from "./triangle.js";
-import { render as circles_render } from "./circles.js";
+import { render as render_triangle } from "./triangle.js";
+import { render as render_circles } from "./circles.js";
+import { ColorWidget } from "./widgets/color_picker.js";
+
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -49,12 +51,20 @@ async function main() {
     const circles_button = document.getElementById('circles_button');
     assert(circles_button, "Circles button is not found!");
 
+    const circles_color_widget = new ColorWidget("Background Color");
+
     triangle_button.addEventListener('click', async () => {
-        await triangle_render(device, context);
+        await render_triangle(device, context);
+        circles_color_widget.visibility.off();
     });
 
     circles_button.addEventListener('click', async () => {
-        await circles_render(device, context);
+        await render_circles(device, context);
+        circles_color_widget.visibility.on();
+    });
+
+    document.addEventListener(circles_color_widget.event, async () => {
+        await render_circles(device, context);
     });
 
     circles_button.click();
