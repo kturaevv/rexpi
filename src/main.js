@@ -13,21 +13,28 @@ async function init() {
     const canvas = document.getElementById("canvas");
     assert(canvas, "Canvas not found!");
 
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    console.log(canvas.width, canvas.height);
-
     /** @type {GPUCanvasContext} **/
     const context = canvas.getContext("webgpu");
     assert(context, "Context not found!");
     assert(context instanceof GPUCanvasContext, "Context has wrong type");
 
+    const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const canvas = entry.target;
+            const width = entry.contentBoxSize[0].inlineSize;
+            const height = entry.contentBoxSize[0].blockSize;
+            canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+            canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+        }
+    });
+    observer.observe(canvas);
+
     context.configure({
         device: device,
         format: navigator.gpu.getPreferredCanvasFormat(),
         size: {
-            width: canvas.clientWidth,
-            height: canvas.clientHeight,
+            width: canvas.width,
+            height: canvas.height,
         },
     });
 
@@ -49,6 +56,8 @@ async function main() {
     circles_button.addEventListener('click', async () => {
         await circles_render(device, context);
     });
+
+    circles_button.click();
 }
 
 await main();
