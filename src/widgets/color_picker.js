@@ -91,6 +91,12 @@ export class ColorWidget {
     }
 
     register() {
+
+        // Custom event
+        const color_change_event = new CustomEvent(this.event, {
+            detail: { values: null }
+        });
+
         // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
         sidebar.insertAdjacentHTML("beforeend", this.get_color_picker_widget());
@@ -128,6 +134,10 @@ export class ColorWidget {
             // Make data available for instance
             const colorArray = [parseFloat(red) / 255, parseFloat(green) / 255, parseFloat(blue) / 255, parseFloat(alpha)];
             this.value = colorArray;
+
+            // Dispatch with new color
+            color_change_event.detail.values = rgbaColor;
+            document.dispatchEvent(color_change_event);
         };
 
         // Add event listeners to all sliders

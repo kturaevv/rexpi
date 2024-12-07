@@ -21,17 +21,20 @@ async function load_shader_module(device) {
  * @param {GPUDevice} device
  * @param {GPUCanvasContext} context
  * */
-export async function render(device, context) {
+export async function render(device, context, clear_color) {
+    assert(Array.isArray(clear_color), "Color should be an array");
+    assert(clear_color.length === 4, "Color should be length 4");
+
     const shader_module = await load_shader_module(device);
 
     // Prepare data
-    const NUM_BALLS = 100;
-    const ball_data = new BallData(NUM_BALLS);
-    for (let i = 0; i < NUM_BALLS; i++) {
+    const num_balls = 100;
+    const ball_data = new BallData(num_balls);
+    for (let i = 0; i < num_balls; i++) {
         ball_data.add(
             random(),
             random(),
-            random(),
+            Math.random(),
             random(),
             random(),
             random(),
@@ -49,7 +52,6 @@ export async function render(device, context) {
         0,
         ball_data.data,
     );
-    console.log(ball_data);
 
     // Other buffers
     const viewport_buffer = device.createBuffer({
@@ -66,7 +68,7 @@ export async function render(device, context) {
             { // Bind group layout entry
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: { type: "uniform" }, // is it required?
+                buffer: { type: "uniform" },
             },
         ]
     });
@@ -110,12 +112,10 @@ export async function render(device, context) {
 
     const command_encoder = device.createCommandEncoder();
 
-    const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
-
     const render_pass_descriptor = {
         colorAttachments: [
             {
-                clearValue: clearColor,
+                clearValue: clear_color,
                 loadOp: "clear",
                 storeOp: "store",
                 view: context.getCurrentTexture().createView(),
@@ -130,7 +130,7 @@ export async function render(device, context) {
         pass_encoder.setPipeline(pipeline);
         pass_encoder.setVertexBuffer(0, vertex_buffer);
         pass_encoder.setBindGroup(0, bind_group);
-        pass_encoder.draw(3, NUM_BALLS);
+        pass_encoder.draw(3, num_balls);
         pass_encoder.end();
     }
     device.queue.submit([command_encoder.finish()]);

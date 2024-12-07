@@ -59,12 +59,12 @@ async function main() {
     });
 
     circles_button.addEventListener('click', async () => {
-        await render_circles(device, context);
+        await render_circles(device, context, circles_color_widget.value);
         circles_color_widget.visibility.on();
     });
 
     document.addEventListener(circles_color_widget.event, async () => {
-        await render_circles(device, context);
+        await render_circles(device, context, circles_color_widget.value);
     });
 
     circles_button.click();
