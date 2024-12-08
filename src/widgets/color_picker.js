@@ -130,7 +130,13 @@ export class ColorWidget {
             color_preview.style.backgroundColor = rgbaColor;
 
             // Make data available for instance
-            const colorArray = [parseFloat(red) / 255, parseFloat(green) / 255, parseFloat(blue) / 255, parseFloat(alpha)];
+            // bgra8unorm
+            const colorArray = [
+                parseInt(red) / 255,
+                parseInt(green) / 255,
+                parseInt(blue) / 255,
+                parseFloat(alpha)
+            ];
             this.value = colorArray;
 
             // Dispatch

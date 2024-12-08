@@ -40,6 +40,9 @@ async function init() {
             width: canvas.width,
             height: canvas.height,
         },
+        format: "rgba8unorm",
+        alphaMode: "premultiplied",
+        colorSpace: "srgb",
     });
 
     return [device, context];

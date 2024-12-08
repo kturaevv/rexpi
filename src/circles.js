@@ -35,7 +35,6 @@ async function load_shader_module(device, debug) {
  * @param {GPUCanvasContext} context
  * */
 export async function render(device, context, clear_color, num_balls, debug) {
-    assert(Array.isArray(clear_color), "Color should be an array");
     assert(clear_color.length === 4, "Color should be length 4");
     assert(Number.isInteger(num_balls), "Num balls should be an integer");
     assert(is_bool(debug), "Debug value should be a boolean", debug);
@@ -105,6 +104,7 @@ export async function render(device, context, clear_color, num_balls, debug) {
     });
 
     const pipeline_descriptor = {
+        label: "Circles render pipeline",
         vertex: {
             module: shader_module,
             entrypoint: "vs_main",
@@ -114,7 +114,8 @@ export async function render(device, context, clear_color, num_balls, debug) {
             module: shader_module,
             entrypoint: "fs_main",
             targets: [{
-                format: navigator.gpu.getPreferredCanvasFormat(),
+                // format: navigator.gpu.getPreferredCanvasFormat(),
+                format: "rgba8unorm"
             }],
         },
         primitive: { topology: "triangle-list" },
@@ -124,9 +125,11 @@ export async function render(device, context, clear_color, num_balls, debug) {
 
     const pipeline = device.createRenderPipeline(pipeline_descriptor);
 
-    const command_encoder = device.createCommandEncoder();
+    const command_encoder = device.createCommandEncoder({ label: "Circles command encoder" });
 
+    console.log(navigator.gpu.getPreferredCanvasFormat());
     const render_pass_descriptor = {
+        label: "Circles pass encoder",
         colorAttachments: [
             {
                 clearValue: clear_color,
