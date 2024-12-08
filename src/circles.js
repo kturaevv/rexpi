@@ -21,14 +21,14 @@ async function load_shader_module(device) {
  * @param {GPUDevice} device
  * @param {GPUCanvasContext} context
  * */
-export async function render(device, context, clear_color) {
+export async function render(device, context, clear_color, num_balls) {
     assert(Array.isArray(clear_color), "Color should be an array");
     assert(clear_color.length === 4, "Color should be length 4");
+    assert(Number.isInteger(num_balls), "Num balls should be an integer");
 
     const shader_module = await load_shader_module(device);
 
     // Prepare data
-    const num_balls = 100;
     const ball_data = new BallData(num_balls);
     for (let i = 0; i < num_balls; i++) {
         ball_data.add(

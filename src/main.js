@@ -2,6 +2,7 @@
 import { assert } from "./utils.js";
 import { render as render_triangle } from "./triangle.js";
 import { render as render_circles } from "./circles.js";
+import { NumberWidget } from "./widgets/number.js";
 import { ColorWidget } from "./widgets/color_picker.js";
 
 
@@ -51,20 +52,27 @@ async function main() {
     const circles_button = document.getElementById('circles_button');
     assert(circles_button, "Circles button is not found!");
 
+    const circles_amount_widget = new NumberWidget("Amount", 100);
     const circles_color_widget = new ColorWidget("Background Color");
 
     triangle_button.addEventListener('click', async () => {
         await render_triangle(device, context);
+        circles_amount_widget.visibility.off();
         circles_color_widget.visibility.off();
     });
 
     circles_button.addEventListener('click', async () => {
-        await render_circles(device, context, circles_color_widget.value);
+        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value);
+        circles_amount_widget.visibility.on();
         circles_color_widget.visibility.on();
     });
 
     document.addEventListener(circles_color_widget.event, async () => {
-        await render_circles(device, context, circles_color_widget.value);
+        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value);
+    });
+
+    document.addEventListener(circles_amount_widget.event, async () => {
+        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value);
     });
 
     circles_button.click();
