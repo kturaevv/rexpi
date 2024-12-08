@@ -1,19 +1,32 @@
-import { assert, random } from "./utils.js";
+import { assert, is_bool, random } from "./utils.js";
 import BallData from "./ball.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
-async function load_shader_module(device) {
-    const shader_file = await fetch("shader.wgsl")
+
+async function load_shader_file(name) {
+    const shader_file = await fetch(name)
         .then((res) => res.text())
         .then((text) => text)
         .catch((e) =>
             console.log("Catched error while loading shader module!", e)
         );
     assert(typeof shader_file === "string", "Shader module is not a string!");
+    return shader_file;
+}
+
+async function load_shader_module(device, debug) {
+    const vs_file = await load_shader_file("circles_vs.wgsl")
+    let fs_file = '';
+
+    if (debug === true) {
+        fs_file = await load_shader_file("circles_fs_debug.wgsl")
+    } else {
+        fs_file = await load_shader_file("circles_fs.wgsl")
+    }
 
     return device.createShaderModule({
-        code: shader_file,
+        code: vs_file + fs_file,
     });
 }
 
@@ -21,12 +34,13 @@ async function load_shader_module(device) {
  * @param {GPUDevice} device
  * @param {GPUCanvasContext} context
  * */
-export async function render(device, context, clear_color, num_balls) {
+export async function render(device, context, clear_color, num_balls, debug) {
     assert(Array.isArray(clear_color), "Color should be an array");
     assert(clear_color.length === 4, "Color should be length 4");
     assert(Number.isInteger(num_balls), "Num balls should be an integer");
+    assert(is_bool(debug), "Debug value should be a boolean", debug);
 
-    const shader_module = await load_shader_module(device);
+    const shader_module = await load_shader_module(device, debug);
 
     // Prepare data
     const ball_data = new BallData(num_balls);

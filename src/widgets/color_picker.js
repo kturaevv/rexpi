@@ -93,9 +93,7 @@ export class ColorWidget {
     register() {
 
         // Custom event
-        const color_change_event = new CustomEvent(this.event, {
-            detail: { values: null }
-        });
+        const color_change_event = new CustomEvent(this.event);
 
         // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
@@ -135,8 +133,7 @@ export class ColorWidget {
             const colorArray = [parseFloat(red) / 255, parseFloat(green) / 255, parseFloat(blue) / 255, parseFloat(alpha)];
             this.value = colorArray;
 
-            // Dispatch with new color
-            color_change_event.detail.values = rgbaColor;
+            // Dispatch
             document.dispatchEvent(color_change_event);
         };
 

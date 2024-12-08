@@ -28,6 +28,7 @@ export default class BallData {
         assert(dy, "dy is not set");
         assert(dz, "dz is not set");
         assert(r, "r is not set");
+        assert(z >= 0, "Depth buffer out of range [0;1]");
         this.data.set([x, y, z, 1.0, dx, dy, dz, 1.0, r], this.offset_idx);
         this.offset_idx += BallData.NFIELDS;
     }
@@ -35,7 +36,7 @@ export default class BallData {
     get_gpu_vertex_state() {
         return [
             {
-                arrayStride: 36,
+                arrayStride: BallData.SIZE,
                 stepMode: "instance",
                 attributes: [
                     {
