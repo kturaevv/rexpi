@@ -62,35 +62,32 @@ async function main() {
     const circles_color_widget = new ColorWidget("Background Color");
     const circles_size_widget = new SliderWidget("Size", 0.1, 0, 1, 0.01);
 
+    const registered_widgets = [
+        circles_debug_mode,
+        circles_amount_widget,
+        circles_color_widget,
+        circles_size_widget,
+    ];
+
     triangle_button.addEventListener('click', async () => {
         await render_triangle(device, context);
-        circles_debug_mode.visibility.off();
-        circles_amount_widget.visibility.off();
-        circles_color_widget.visibility.off();
+        for (let widget of registered_widgets) {
+            widget.visibility.off();
+        }
     });
 
     circles_button.addEventListener('click', async () => {
         await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-        circles_debug_mode.visibility.on();
-        circles_amount_widget.visibility.on();
-        circles_color_widget.visibility.on();
+        for (const widget of registered_widgets) {
+            widget.visibility.on();
+        }
     });
 
-    document.addEventListener(circles_color_widget.event, async () => {
-        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-    });
-
-    document.addEventListener(circles_amount_widget.event, async () => {
-        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-    });
-
-    document.addEventListener(circles_size_widget.event, async () => {
-        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-    });
-
-    document.addEventListener(circles_debug_mode.event, async () => {
-        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-    });
+    for (const widget of registered_widgets) {
+        document.addEventListener(widget.event, async () => {
+            await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+        });
+    }
 
     circles_button.click();
 }

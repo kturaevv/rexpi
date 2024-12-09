@@ -128,7 +128,6 @@ export async function render(device, context, clear_color, num_balls, size, debu
 
     const command_encoder = device.createCommandEncoder({ label: "Circles command encoder" });
 
-    console.log(navigator.gpu.getPreferredCanvasFormat());
     const render_pass_descriptor = {
         label: "Circles pass encoder",
         colorAttachments: [
