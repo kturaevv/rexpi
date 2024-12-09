@@ -21,29 +21,6 @@ export class NumberWidget {
         this.register();
     }
 
-    toggle_visibility() {
-        const element = document.getElementById(this.id);
-        if (element.classList.contains('visible')) {
-            element.classList.replace('visible', 'invisible');
-        } else {
-            element.classList.replace('invisible', 'visible');
-        }
-    }
-
-    make_visible() {
-        const element = document.getElementById(this.id);
-        if (element.classList.contains("invisible")) {
-            element.classList.replace('invisible', 'visible');
-        }
-    }
-
-    make_invisible() {
-        const element = document.getElementById(this.id);
-        if (element.classList.contains("visible")) {
-            element.classList.replace('visible', 'invisible');
-        }
-    }
-
     get_number_widget() {
         return `
             <!--Quantity Input Section -->

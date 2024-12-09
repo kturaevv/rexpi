@@ -4,7 +4,7 @@ import Visibility from "./visibility.js";
 var CHECKBOX_WIDGET_COUNT = 0;
 
 export class CheckboxWidget {
-    constructor(label = "Number Widget") {
+    constructor(label = "Checkbox Widget") {
         CHECKBOX_WIDGET_COUNT += 1;
         this.id = generate_short_id() + `_${CHECKBOX_WIDGET_COUNT}`;
 

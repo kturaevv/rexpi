@@ -34,10 +34,11 @@ async function load_shader_module(device, debug) {
  * @param {GPUDevice} device
  * @param {GPUCanvasContext} context
  * */
-export async function render(device, context, clear_color, num_balls, debug) {
+export async function render(device, context, clear_color, num_balls, size, debug) {
     assert(clear_color.length === 4, "Color should be length 4");
     assert(Number.isInteger(num_balls), "Num balls should be an integer");
     assert(is_bool(debug), "Debug value should be a boolean", debug);
+    assert(!Number.isNaN(size), "Size is not an Integer!", size);
 
     const shader_module = await load_shader_module(device, debug);
 
@@ -51,7 +52,7 @@ export async function render(device, context, clear_color, num_balls, debug) {
             random(),
             random(),
             random(),
-            0.1
+            size
         );
     }
 
