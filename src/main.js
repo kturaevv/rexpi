@@ -1,7 +1,7 @@
 /// <reference types="@webgpu/types" />
 import { assert } from "./utils.js";
 import { render as render_triangle } from "./triangle.js";
-import { render as render_circles } from "./circles.js";
+import { init_balls as render_circles } from "./circles.js";
 import { ColorWidget } from "./widgets/color_picker.js";
 import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
