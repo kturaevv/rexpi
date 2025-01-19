@@ -4,12 +4,6 @@ struct VertexOutput {
     @location(1) radius: f32,
 }
 
-struct BallData {
-    @location(0) position: vec4<f32>,
-    @location(1) velocity: vec4<f32>,
-    @location(2) radius: f32,
-}
-
 @group(0) @binding(0) var<uniform> VIEWPORT_SIZE: vec2<f32>;
 
 fn get_aspect() -> f32 {
@@ -19,22 +13,23 @@ fn get_aspect() -> f32 {
 @vertex
 fn vs_main(
     @builtin(vertex_index) vertexIndex: u32,
-    ball: BallData,
+    @location(0) position: vec4<f32>,
+    @location(1) radius: f32,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.center.x = ball.position.x * get_aspect();
-    out.center.y = ball.position.y;
-    out.radius = ball.radius;
+    out.center.x = position.x * get_aspect();
+    out.center.y = position.y;
+    out.radius = radius;
     // r = (x/2)/sqrt3
     // x/2 = r*sqrt3
     // x = r*sqrt3*2 - side len
     // x = r*sqrt3   - half-side len
-    let half_side = ball.radius * sqrt(3);
-    let vertex_center_edge = sqrt(pow(ball.radius, 2) + pow(half_side, 2));
+    let half_side = radius * sqrt(3);
+    let vertex_center_edge = sqrt(pow(radius, 2) + pow(half_side, 2));
     var vertices = array<vec2<f32>, 3>(
         vec2(out.center.x, out.center.y + vertex_center_edge), // top
-        vec2(out.center.x - half_side, out.center.y - ball.radius), // bottom left
-        vec2(out.center.x + half_side, out.center.y - ball.radius), // bottom right
+        vec2(out.center.x - half_side, out.center.y - radius), // bottom left
+        vec2(out.center.x + half_side, out.center.y - radius), // bottom right
     );
 
     for (var i: i32 = 0; i < 3; i++) {

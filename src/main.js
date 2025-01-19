@@ -60,7 +60,7 @@ async function main() {
     const circles_debug_mode = new CheckboxWidget("Debug");
     const circles_amount_widget = new NumberWidget("Amount", 100);
     const circles_color_widget = new ColorWidget("Background Color");
-    const circles_size_widget = new SliderWidget("Size", 0.1, 0, 1, 0.01);
+    const circles_size_widget = new SliderWidget("Size", 0.1, 0.01, 0.3, 0.001);
 
     const registered_widgets = [
         circles_debug_mode,

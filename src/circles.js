@@ -1,5 +1,4 @@
 import { assert, is_bool, random } from "./utils.js";
-import BallData from "./ball.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
@@ -43,24 +42,23 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
     const shader_module = await load_ball_shader_module(device, debug);
 
     // Prepare data
-    const ball_data = new BallData(num_balls);
+    let ball_position = new Float32Array(num_balls * 4);
+    let ball_velocity = new Float32Array(num_balls * 4);
+    let ball_radius = new Float32Array(num_balls);
+
     for (let i = 0; i < num_balls; i++) {
-        ball_data.add(
-            random(),
-            random(),
-            Math.random(),
-            random(),
-            random(),
-            random(),
-            size
-        );
+        let offset = i * 4
+        ball_position.set([random(), random(), random(), 1.0], offset);
+        ball_velocity.set([random(), random(), random(), 1.0], offset);
+        ball_radius.set([size], i);
     }
 
     // buffers
-    const ball_buffer = device.createBuffer({
-        size: ball_data.data.byteLength,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
+    const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    const ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
+    const ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
+    const ball_radius_buffer = device.createBuffer({ size: ball_radius.byteLength, usage: ball_usage });
+
     const viewport_buffer = device.createBuffer({
         label: "Viewport uniform",
         size: 2 * 4, // 2 floats
@@ -71,12 +69,12 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
     const [
         render_pipeline,
         render_bind_group
-    ] = create_ball_render_pipeline(device, viewport_buffer, ball_data, shader_module);
+    ] = create_ball_render_pipeline(device, viewport_buffer, shader_module);
 
     const [
         compute_pipeline,
         compute_bind_group
-    ] = create_ball_compute_pipeline(device, ball_buffer, ball_data, await load_shader_file("circles_cs.wgsl"));
+    ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, await load_shader_file("circles_cs.wgsl"));
 
 
     const render_pass_descriptor = {
@@ -93,11 +91,9 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
 
     // One time write
     device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([canvas.width, canvas.height]));
-    device.queue.writeBuffer(
-        ball_buffer,
-        0,
-        ball_data.data,
-    );
+    device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
+    device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
+    device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
 
     function render() {
         // Update color attachment view
@@ -115,7 +111,8 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
         const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
         render_pass.setPipeline(render_pipeline);
         render_pass.setBindGroup(0, render_bind_group);
-        render_pass.setVertexBuffer(0, ball_buffer);
+        render_pass.setVertexBuffer(0, ball_position_buffer);
+        render_pass.setVertexBuffer(1, ball_radius_buffer);
         render_pass.draw(3, num_balls);
         render_pass.end();
 
@@ -129,7 +126,7 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
 /** 
  * @param {GPUDevice} device
  * */
-function create_ball_compute_pipeline(device, ball_buffer, ball_data, shader) {
+function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, shader) {
     const compute_shader_module = device.createShaderModule({
         label: "Compute shader",
         code: shader,
@@ -143,19 +140,20 @@ function create_ball_compute_pipeline(device, ball_buffer, ball_data, shader) {
                 buffer: { type: "storage" },
 
             },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: "storage" },
+
+            },
         ]
     });
-
     const compute_bind_group = device.createBindGroup({
         label: "ComputeBindGroup",
         layout: compute_bind_group_layout,
         entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: ball_buffer
-                }
-            }
+            { binding: 0, resource: { buffer: ball_position_buffer } },
+            { binding: 1, resource: { buffer: ball_velocity_buffer } }
 
         ]
     });
@@ -166,8 +164,7 @@ function create_ball_compute_pipeline(device, ball_buffer, ball_data, shader) {
         }),
         compute: {
             module: compute_shader_module,
-            entryPoint: "compute_main",
-            buffers: ball_data.get_gpu_vertex_state(),
+            entryPoint: "compute_main"
         }
     });
 
@@ -178,7 +175,11 @@ function create_ball_compute_pipeline(device, ball_buffer, ball_data, shader) {
 /** 
  * @param {GPUDevice} device
  * */
-function create_ball_render_pipeline(device, viewport_buffer, ball_data, shader_module) {
+function create_ball_render_pipeline(
+    device,
+    viewport_buffer,
+    shader_module
+) {
     const render_bind_group_layout = device.createBindGroupLayout({
         label: "Bind group layout",
         entries: [
@@ -193,12 +194,7 @@ function create_ball_render_pipeline(device, viewport_buffer, ball_data, shader_
         label: "Bind group",
         layout: render_bind_group_layout,
         entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: viewport_buffer,
-                }
-            }
+            { binding: 0, resource: { buffer: viewport_buffer, } },
         ]
     });
     // Render pipeline
@@ -207,10 +203,19 @@ function create_ball_render_pipeline(device, viewport_buffer, ball_data, shader_
     });
     const render_pipeline_descriptor = {
         label: "Circles render pipeline",
+        // We have only 1 vertex buffer which is ball data position buffer
         vertex: {
             module: shader_module,
             entrypoint: "vs_main",
-            buffers: ball_data.get_gpu_vertex_state(),
+            buffers: [{
+                arrayStride: 4 * 4, // vec4<f32> position 
+                stepMode: "instance",
+                attributes: [{ offset: 0, format: "float32x4", shaderLocation: 0 }]
+            }, {
+                arrayStride: 4, // f32 radius
+                stepMode: "instance",
+                attributes: [{ offset: 0, format: "float32", shaderLocation: 1 }]
+            }],
         },
         fragment: {
             module: shader_module,
