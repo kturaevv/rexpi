@@ -4,7 +4,8 @@ import Visibility from "./visibility.js";
 var COLOR_WIDGET_COUNT = 0;
 
 export class ColorWidget {
-    constructor(label = "Text Widget") {
+    constructor(label = "Text Widget", defaultval = null) {
+
         COLOR_WIDGET_COUNT += 1;
 
         this.id = generate_short_id() + `_${COLOR_WIDGET_COUNT}`;
@@ -27,6 +28,10 @@ export class ColorWidget {
 
         this.visibility = new Visibility(this.id);
         this.register();
+
+        if (defaultval) {
+            this.set_color(...defaultval);
+        }
     }
 
     get_color_picker_widget() {
@@ -90,6 +95,36 @@ export class ColorWidget {
     `;
     }
 
+    set_color(r, g, b, a) {
+        if (r === null || g === null || b === null || a === null) {
+            throw new Error("Color values cannot be null");
+        }
+        const red_value = document.getElementById(this.red_value);
+        const green_value = document.getElementById(this.green_value);
+        const blue_value = document.getElementById(this.blue_value);
+        const alpha_value = document.getElementById(this.alpha_value);
+        const color_preview = document.getElementById(this.color_preview);
+
+        red_value.textContent = r;
+        green_value.textContent = g;
+        blue_value.textContent = b;
+        alpha_value.textContent = parseFloat(a).toFixed(1);
+
+        // Update color preview
+        const rgbaColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+        color_preview.style.backgroundColor = rgbaColor;
+
+        // Make data available for instance
+        // bgra8unorm
+        const colorArray = [
+            parseInt(r) / 255,
+            parseInt(g) / 255,
+            parseInt(b) / 255,
+            parseFloat(a)
+        ];
+        this.value = colorArray;
+    }
+
     register() {
 
         // Custom event
@@ -105,13 +140,6 @@ export class ColorWidget {
         const blue_slider = document.getElementById(this.blue_slider);
         const alpha_slider = document.getElementById(this.alpha_slider);
 
-        const red_value = document.getElementById(this.red_value);
-        const green_value = document.getElementById(this.green_value);
-        const blue_value = document.getElementById(this.blue_value);
-        const alpha_value = document.getElementById(this.alpha_value);
-
-        const color_preview = document.getElementById(this.color_preview);
-
         // Function to update color display
         const update_color = () => {
             const red = red_slider.value;
@@ -120,24 +148,7 @@ export class ColorWidget {
             const alpha = alpha_slider.value;
 
             // Update value displays
-            red_value.textContent = red;
-            green_value.textContent = green;
-            blue_value.textContent = blue;
-            alpha_value.textContent = parseFloat(alpha).toFixed(1);
-
-            // Update color preview
-            const rgbaColor = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-            color_preview.style.backgroundColor = rgbaColor;
-
-            // Make data available for instance
-            // bgra8unorm
-            const colorArray = [
-                parseInt(red) / 255,
-                parseInt(green) / 255,
-                parseInt(blue) / 255,
-                parseFloat(alpha)
-            ];
-            this.value = colorArray;
+            this.set_color(red, green, blue, alpha);
 
             // Dispatch
             document.dispatchEvent(color_change_event);
@@ -155,5 +166,6 @@ export class ColorWidget {
 
         return this;
     }
+
 }
 

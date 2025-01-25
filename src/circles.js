@@ -33,8 +33,10 @@ async function load_ball_shader_module(device, debug) {
  * @param {GPUDevice} device
  * @param {GPUCanvasContext} context
  * */
-export async function init_balls(device, context, clear_color, num_balls, size, debug) {
+export async function init_balls(device, context, clear_color, circle_color, num_balls, size, debug) {
+    console.log(clear_color, circle_color);
     assert(clear_color.length === 4, "Color should be length 4");
+    assert(circle_color.length === 4, "Color should be length 4");
     assert(Number.isInteger(num_balls), "Num balls should be an integer");
     assert(is_bool(debug), "Debug value should be a boolean", debug);
     assert(!Number.isNaN(size), "Size is not an Integer!", size);
@@ -61,7 +63,7 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
 
     const viewport_buffer = device.createBuffer({
         label: "Viewport uniform",
-        size: 2 * 4, // 2 floats
+        size: 8 * 4, // 6 floats + padding
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         mappedAtCreation: false,
     });
@@ -90,7 +92,7 @@ export async function init_balls(device, context, clear_color, num_balls, size, 
     };
 
     // One time write
-    device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([canvas.width, canvas.height]));
+    device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...circle_color, canvas.width, canvas.height]));
     device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
     device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
     device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);

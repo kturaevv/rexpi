@@ -4,10 +4,14 @@ struct VertexOutput {
     @location(1) radius: f32,
 }
 
-@group(0) @binding(0) var<uniform> VIEWPORT_SIZE: vec2<f32>;
+struct Config {
+    color: vec4<f32>,
+    viewport_size: vec2<f32>,
+}
+@group(0) @binding(0) var<uniform> config: Config;
 
 fn get_aspect() -> f32 {
-    return VIEWPORT_SIZE.x / VIEWPORT_SIZE.y;
+    return config.viewport_size.x / config.viewport_size.y;
 }
 
 @vertex

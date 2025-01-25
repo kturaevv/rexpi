@@ -59,7 +59,6 @@ export async function render(device, context) {
                         offset: 0,
                         shaderLocation: 0,
                     }]
-
             }]
         },
         fragment: {

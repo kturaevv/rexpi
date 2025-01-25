@@ -59,33 +59,38 @@ async function main() {
 
     const circles_debug_mode = new CheckboxWidget("Debug");
     const circles_amount_widget = new NumberWidget("Amount", 100);
-    const circles_color_widget = new ColorWidget("Background Color");
+    const circles_bg_color_widget = new ColorWidget("Background Color");
+    const circles_color_widget = new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]);
     const circles_size_widget = new SliderWidget("Size", 0.1, 0.01, 0.3, 0.001);
 
-    const registered_widgets = [
+    const circle_widgets = [
         circles_debug_mode,
         circles_amount_widget,
-        circles_color_widget,
+        circles_bg_color_widget,
         circles_size_widget,
+        circles_color_widget
     ];
 
     triangle_button.addEventListener('click', async () => {
         await render_triangle(device, context);
-        for (let widget of registered_widgets) {
+        for (let widget of circle_widgets) {
             widget.visibility.off();
         }
     });
 
     circles_button.addEventListener('click', async () => {
-        await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
-        for (const widget of registered_widgets) {
+        for (const widget of circle_widgets) {
             widget.visibility.on();
         }
+        const args = [circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value];
+        console.log(circles_bg_color_widget.value, circles_color_widget.value);
+        await render_circles(device, context, ...args);
     });
 
-    for (const widget of registered_widgets) {
+    for (const widget of circle_widgets) {
         document.addEventListener(widget.event, async () => {
-            await render_circles(device, context, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+            const args = [circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value];
+            await render_circles(device, context, ...args);
         });
     }
 
