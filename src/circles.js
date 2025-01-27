@@ -1,3 +1,4 @@
+import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
@@ -27,101 +28,6 @@ async function load_ball_shader_module(device, debug) {
     return device.createShaderModule({
         code: vs_file + fs_file,
     });
-}
-
-/** 
- * @param {GPUDevice} device
- * @param {GPUCanvasContext} context
- * */
-export async function init_balls(device, context, clear_color, circle_color, num_balls, size, debug) {
-    console.log(clear_color, circle_color);
-    assert(clear_color.length === 4, "Color should be length 4");
-    assert(circle_color.length === 4, "Color should be length 4");
-    assert(Number.isInteger(num_balls), "Num balls should be an integer");
-    assert(is_bool(debug), "Debug value should be a boolean", debug);
-    assert(!Number.isNaN(size), "Size is not an Integer!", size);
-
-    const shader_module = await load_ball_shader_module(device, debug);
-
-    // Prepare data
-    let ball_position = new Float32Array(num_balls * 4);
-    let ball_velocity = new Float32Array(num_balls * 4);
-    let ball_radius = new Float32Array(num_balls);
-
-    for (let i = 0; i < num_balls; i++) {
-        let offset = i * 4
-        ball_position.set([random(), random(), random(), 1.0], offset);
-        ball_velocity.set([random(), random(), random(), 1.0], offset);
-        ball_radius.set([size], i);
-    }
-
-    // buffers
-    const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-    const ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
-    const ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
-    const ball_radius_buffer = device.createBuffer({ size: ball_radius.byteLength, usage: ball_usage });
-
-    const viewport_buffer = device.createBuffer({
-        label: "Viewport uniform",
-        size: 8 * 4, // 6 floats + padding
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-        mappedAtCreation: false,
-    });
-
-    const [
-        render_pipeline,
-        render_bind_group
-    ] = create_ball_render_pipeline(device, viewport_buffer, shader_module);
-
-    const [
-        compute_pipeline,
-        compute_bind_group
-    ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, await load_shader_file("circles_cs.wgsl"));
-
-
-    const render_pass_descriptor = {
-        label: "Circles pass encoder",
-        colorAttachments: [
-            {
-                clearValue: clear_color,
-                loadOp: "clear",
-                storeOp: "store",
-                view: context.getCurrentTexture().createView(),
-            },
-        ],
-    };
-
-    // One time write
-    device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...circle_color, canvas.width, canvas.height]));
-    device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
-    device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
-    device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
-
-    function render() {
-        // Update color attachment view
-        render_pass_descriptor.colorAttachments[0].view =
-            context.getCurrentTexture().createView();
-
-        const command_encoder = device.createCommandEncoder({ label: "Circles command encoder" });
-
-        const compute_pass = command_encoder.beginComputePass();
-        compute_pass.setPipeline(compute_pipeline);
-        compute_pass.setBindGroup(0, compute_bind_group);
-        compute_pass.dispatchWorkgroups(Math.ceil(num_balls / 32));
-        compute_pass.end();
-
-        const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
-        render_pass.setPipeline(render_pipeline);
-        render_pass.setBindGroup(0, render_bind_group);
-        render_pass.setVertexBuffer(0, ball_position_buffer);
-        render_pass.setVertexBuffer(1, ball_radius_buffer);
-        render_pass.draw(3, num_balls);
-        render_pass.end();
-
-        device.queue.submit([command_encoder.finish()]);
-        requestAnimationFrame(render);
-    }
-    requestAnimationFrame(render);
 }
 
 
@@ -234,4 +140,127 @@ function create_ball_render_pipeline(
     const render_pipeline = device.createRenderPipeline(render_pipeline_descriptor);
 
     return [render_pipeline, render_bind_group];
+}
+
+export class CirclesRenderer extends Renderer {
+    /** 
+     * @param {GPUDevice} device
+     * @param {GPUCanvasContext} context
+     * */
+
+    async init(device, context, clear_color, circle_color, num_balls, size, debug) {
+        assert(clear_color.length === 4, "Color should be length 4");
+        assert(circle_color.length === 4, "Color should be length 4");
+        assert(Number.isInteger(num_balls), "Num balls should be an integer");
+        assert(is_bool(debug), "Debug value should be a boolean", debug);
+        assert(!Number.isNaN(size), "Size is not an Integer!", size);
+
+        const shader_module = await load_ball_shader_module(device, debug);
+
+        // Prepare data
+        let ball_position = new Float32Array(num_balls * 4);
+        let ball_velocity = new Float32Array(num_balls * 4);
+        let ball_radius = new Float32Array(num_balls);
+
+        for (let i = 0; i < num_balls; i++) {
+            let offset = i * 4
+            ball_position.set([random(), random(), random(), 1.0], offset);
+            ball_velocity.set([random(), random(), random(), 1.0], offset);
+            ball_radius.set([size], i);
+        }
+
+        // buffers
+        const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        const ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
+        const ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
+        const ball_radius_buffer = device.createBuffer({ size: ball_radius.byteLength, usage: ball_usage });
+        const viewport_buffer = device.createBuffer({
+            label: "Viewport uniform",
+            size: 8 * 4, // 6 floats + padding
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            mappedAtCreation: false,
+        });
+
+        let [
+            render_pipeline,
+            render_bind_group
+        ] = create_ball_render_pipeline(device, viewport_buffer, shader_module);
+
+        let [
+            compute_pipeline,
+            compute_bind_group
+        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, await load_shader_file("circles_cs.wgsl"));
+
+
+        const render_pass_descriptor = {
+            label: "Circles pass encoder",
+            colorAttachments: [
+                {
+                    clearValue: clear_color,
+                    loadOp: "clear",
+                    storeOp: "store",
+                    view: context.getCurrentTexture().createView(),
+                },
+            ],
+        };
+
+        // One time write
+        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...circle_color, canvas.width, canvas.height]));
+        device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
+        device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
+        device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
+
+        this.render_callback = () => {
+            if (!this.is_rendering) { return; }
+
+            // Update color attachment view
+            render_pass_descriptor.colorAttachments[0].view =
+                context.getCurrentTexture().createView();
+
+            const command_encoder = device.createCommandEncoder({ label: "Circles command encoder" });
+
+            const compute_pass = command_encoder.beginComputePass();
+            compute_pass.setPipeline(compute_pipeline);
+            compute_pass.setBindGroup(0, compute_bind_group);
+            compute_pass.dispatchWorkgroups(Math.ceil(num_balls / 32));
+            compute_pass.end();
+
+            const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
+            render_pass.setPipeline(render_pipeline);
+            render_pass.setBindGroup(0, render_bind_group);
+            render_pass.setVertexBuffer(0, ball_position_buffer);
+            render_pass.setVertexBuffer(1, ball_radius_buffer);
+            render_pass.draw(3, num_balls);
+            render_pass.end();
+
+            device.queue.submit([command_encoder.finish()]);
+            requestAnimationFrame(this.render_callback);
+        };
+
+        this.cleanup_callback = () => {
+            ball_position = null;
+            ball_velocity = null;
+            ball_radius = null;
+            ball_position_buffer.destroy();
+            ball_radius_buffer.destroy();
+            ball_velocity_buffer.destroy();
+            viewport_buffer.destroy();
+            compute_pipeline = null;
+            compute_bind_group = null;
+            render_pipeline = null;
+            render_bind_group = null;
+        };
+
+        return this;
+    };
+
+    render() {
+        this.is_rendering = true;
+        requestAnimationFrame(this.render_callback);
+    };
+
+    terminate() {
+        this.is_rendering = false;
+        this.cleanup_callback();
+    }
 }

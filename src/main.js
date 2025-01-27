@@ -1,7 +1,7 @@
 /// <reference types="@webgpu/types" />
 import { assert } from "./utils.js";
-import { render as render_triangle } from "./triangle.js";
-import { init_balls as render_circles } from "./circles.js";
+import { TriangleRenderer } from "./triangle.js";
+import { CirclesRenderer } from "./circles.js";
 import { ColorWidget } from "./widgets/color_picker.js";
 import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
@@ -53,8 +53,9 @@ async function main() {
     const [device, context] = await init();
 
     const triangle_button = document.getElementById('triangle_button');
-    assert(triangle_button, "Triangle button is not found!");
     const circles_button = document.getElementById('circles_button');
+
+    assert(triangle_button, "Triangle button is not found!");
     assert(circles_button, "Circles button is not found!");
 
     const circles_debug_mode = new CheckboxWidget("Debug");
@@ -71,8 +72,19 @@ async function main() {
         circles_color_widget
     ];
 
+    const triangle_renderer = new TriangleRenderer().init(device, context);
+
+    let currently_running_renderer = null;
+    const turn_off_renderer = (renderer) => {
+        if (currently_running_renderer) {
+            currently_running_renderer.terminate();
+        }
+        currently_running_renderer = renderer;
+    };
+
     triangle_button.addEventListener('click', async () => {
-        await render_triangle(device, context);
+        triangle_renderer.render();
+        turn_off_renderer(triangle_renderer);
         for (let widget of circle_widgets) {
             widget.visibility.off();
         }
@@ -82,15 +94,18 @@ async function main() {
         for (const widget of circle_widgets) {
             widget.visibility.on();
         }
-        const args = [circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value];
-        console.log(circles_bg_color_widget.value, circles_color_widget.value);
-        await render_circles(device, context, ...args);
+        const circles_renderer = new CirclesRenderer();
+        await circles_renderer.init(device, context, circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+        circles_renderer.render();
+        turn_off_renderer(circles_renderer);
     });
 
     for (const widget of circle_widgets) {
         document.addEventListener(widget.event, async () => {
-            const args = [circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value];
-            await render_circles(device, context, ...args);
+            const circles_renderer = new CirclesRenderer();
+            await circles_renderer.init(device, context, circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+            circles_renderer.render();
+            turn_off_renderer(circles_renderer);
         });
     }
 
