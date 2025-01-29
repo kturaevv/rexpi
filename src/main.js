@@ -62,7 +62,7 @@ async function main() {
     const circles_amount_widget = new NumberWidget("Amount", 100);
     const circles_bg_color_widget = new ColorWidget("Background Color");
     const circles_color_widget = new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]);
-    const circles_size_widget = new SliderWidget("Size", 0.1, 0.01, 0.3, 0.001);
+    const circles_size_widget = new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001);
 
     const circle_widgets = [
         circles_debug_mode,
