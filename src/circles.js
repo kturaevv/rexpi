@@ -34,7 +34,7 @@ async function load_ball_shader_module(device, debug) {
 /** 
  * @param {GPUDevice} device
  * */
-function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, shader) {
+function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, shader) {
     const compute_shader_module = device.createShaderModule({
         label: "Compute shader",
         code: shader,
@@ -54,6 +54,12 @@ function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocit
                 buffer: { type: "storage" },
 
             },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: "storage" },
+
+            },
         ]
     });
     const compute_bind_group = device.createBindGroup({
@@ -61,8 +67,8 @@ function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocit
         layout: compute_bind_group_layout,
         entries: [
             { binding: 0, resource: { buffer: ball_position_buffer } },
-            { binding: 1, resource: { buffer: ball_velocity_buffer } }
-
+            { binding: 1, resource: { buffer: ball_velocity_buffer } },
+            { binding: 2, resource: { buffer: ball_radius_buffer } }
         ]
     });
 
@@ -189,7 +195,7 @@ export class CirclesRenderer extends Renderer {
         let [
             compute_pipeline,
             compute_bind_group
-        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, await load_shader_file("circles_cs.wgsl"));
+        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, await load_shader_file("circles_cs.wgsl"));
 
 
         const render_pass_descriptor = {
