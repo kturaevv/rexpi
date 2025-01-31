@@ -51,6 +51,8 @@ export class TriangleRenderer extends Renderer {
         });
 
         const render_pipeline = device.createRenderPipeline({
+            layout: "auto",
+            primitive: { topology: "triangle-list" },
             vertex: {
                 module: shader_module,
                 entryPoint: "vs_main",
@@ -69,10 +71,6 @@ export class TriangleRenderer extends Renderer {
                 entryPoint: 'fs_main',
                 targets: [{ format: "rgba8unorm" }],
             },
-            layout: "auto",
-            primitive: {
-                topology: "triangle-list"
-            }
         });
 
         device.queue.writeBuffer(vertex_buffer, 0, triangle_vertices);

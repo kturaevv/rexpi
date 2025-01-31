@@ -6,6 +6,7 @@ import { ColorWidget } from "./widgets/color_picker.js";
 import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
 import { SliderWidget } from "./widgets/slider.js";
+import CubeRenderer from "./cube.js";
 
 
 async function init() {
@@ -54,9 +55,11 @@ async function main() {
 
     const triangle_button = document.getElementById('triangle_button');
     const circles_button = document.getElementById('circles_button');
+    const cube_button = document.getElementById('cube_button');
 
     assert(triangle_button, "Triangle button is not found!");
     assert(circles_button, "Circles button is not found!");
+    assert(circles_button, "Cube button is not found!");
 
     const circles_debug_mode = new CheckboxWidget("Debug");
     const circles_amount_widget = new NumberWidget("Amount", 100);
@@ -109,7 +112,17 @@ async function main() {
         });
     }
 
-    circles_button.click();
+
+    cube_button.addEventListener("click", async () => {
+        const cube_renderer = new CubeRenderer();
+        await cube_renderer.init(device, context);
+        cube_renderer.render();
+        for (let widget of circle_widgets) {
+            widget.visibility.off();
+        }
+    });
+
+    cube_button.click();
 }
 
 await main();
