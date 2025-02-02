@@ -7,6 +7,7 @@ import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
 import { SliderWidget } from "./widgets/slider.js";
 import CubeRenderer from "./cube.js";
+import GUI from "./widgets/gui.js";
 
 
 async function init() {
@@ -61,22 +62,6 @@ async function main() {
     assert(circles_button, "Circles button is not found!");
     assert(circles_button, "Cube button is not found!");
 
-    const circles_debug_mode = new CheckboxWidget("Debug");
-    const circles_amount_widget = new NumberWidget("Amount", 100);
-    const circles_bg_color_widget = new ColorWidget("Background Color");
-    const circles_color_widget = new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]);
-    const circles_size_widget = new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001);
-
-    const circle_widgets = [
-        circles_debug_mode,
-        circles_amount_widget,
-        circles_bg_color_widget,
-        circles_size_widget,
-        circles_color_widget
-    ];
-
-    const triangle_renderer = new TriangleRenderer().init(device, context);
-
     let currently_running_renderer = null;
     const turn_off_renderer = (renderer) => {
         if (currently_running_renderer) {
@@ -85,44 +70,48 @@ async function main() {
         currently_running_renderer = renderer;
     };
 
+    const circles_gui = new GUI();
+    circles_gui.add('debug', new CheckboxWidget("Debug"));
+    circles_gui.add('amount', new NumberWidget("Amount", 100));
+    circles_gui.add('bg_color', new ColorWidget("Background Color"));
+    circles_gui.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
+    circles_gui.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
+
+    const triangle_renderer = new TriangleRenderer().init(device, context);
+
     triangle_button.addEventListener('click', async () => {
         triangle_renderer.render();
         turn_off_renderer(triangle_renderer);
-        for (let widget of circle_widgets) {
-            widget.visibility.off();
-        }
+        circles_gui.make_invisible();
     });
 
+    console.log(circles_gui.values());
+
     circles_button.addEventListener('click', async () => {
-        for (const widget of circle_widgets) {
-            widget.visibility.on();
-        }
+        circles_gui.make_visible();
         const circles_renderer = new CirclesRenderer();
-        await circles_renderer.init(device, context, circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+        await circles_renderer.init(device, context, circles_gui);
         circles_renderer.render();
         turn_off_renderer(circles_renderer);
     });
 
-    for (const widget of circle_widgets) {
+    cube_button.addEventListener("click", async () => {
+        circles_gui.make_invisible();
+        const cube_renderer = new CubeRenderer();
+        await cube_renderer.init(device, context);
+        cube_renderer.render();
+    });
+
+    for (const widget of circles_gui.widgets()) {
         document.addEventListener(widget.event, async () => {
             const circles_renderer = new CirclesRenderer();
-            await circles_renderer.init(device, context, circles_bg_color_widget.value, circles_color_widget.value, circles_amount_widget.value, circles_size_widget.value, circles_debug_mode.value);
+            await circles_renderer.init(device, context, circles_gui);
             circles_renderer.render();
             turn_off_renderer(circles_renderer);
         });
     }
 
-
-    cube_button.addEventListener("click", async () => {
-        const cube_renderer = new CubeRenderer();
-        await cube_renderer.init(device, context);
-        cube_renderer.render();
-        for (let widget of circle_widgets) {
-            widget.visibility.off();
-        }
-    });
-
-    cube_button.click();
+    circles_button.click();
 }
 
 await main();

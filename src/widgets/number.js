@@ -1,10 +1,13 @@
 import { generate_short_id } from "../utils.js";
 import Visibility from "./visibility.js";
+import Widget from "./widget.js";
 
 var NUMBER_WIDGET_COUNT = 0;
 
-export class NumberWidget {
+export class NumberWidget extends Widget {
     constructor(label = "Number Widget", default_value) {
+        super();
+
         NUMBER_WIDGET_COUNT += 1;
         this.id = generate_short_id() + `_${NUMBER_WIDGET_COUNT}`;
 

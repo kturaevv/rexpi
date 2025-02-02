@@ -1,10 +1,13 @@
 import { generate_short_id } from "../utils.js";
 import Visibility from "./visibility.js";
+import Widget from "./widget.js";
 
 var SLIDER_WIDGET_COUNT = 0;
 
-export class SliderWidget {
+export class SliderWidget extends Widget {
     constructor(label = "Slider Widget", default_value = 0, min = 0, max = 1, step) {
+        super();
+
         SLIDER_WIDGET_COUNT += 1;
         this.id = generate_short_id() + `_${SLIDER_WIDGET_COUNT}`;
 

@@ -1,5 +1,7 @@
 import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
+import Widget from "./widgets/widget.js";
+import GUI from "./widgets/gui.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
@@ -20,7 +22,7 @@ async function load_ball_shader_module(device, debug) {
     let fs_file = '';
 
     if (debug === true) {
-        fs_file = await load_shader_file("circles_fs_debug.wgsl")
+        fs_file = await load_shader_file("circles_fs_gui.debug.wgsl")
     } else {
         fs_file = await load_shader_file("circles_fs.wgsl")
     }
@@ -152,27 +154,28 @@ export class CirclesRenderer extends Renderer {
     /** 
      * @param {GPUDevice} device
      * @param {GPUCanvasContext} context
+     * @param {GUI} gui 
      * */
+    async init(device, context, gui) {
+        gui = gui.data();
+        assert(gui.bg_color.length === 4, "Color should be length 4");
+        assert(gui.color.length === 4, "Color should be length 4");
+        assert(Number.isInteger(gui.amount), "Num balls should be an integer");
+        assert(is_bool(gui.debug), "Debug value should be a boolean", gui.debug);
+        assert(!Number.isNaN(gui.size), "Size is not an Integer!", gui.size);
 
-    async init(device, context, clear_color, circle_color, num_balls, size, debug) {
-        assert(clear_color.length === 4, "Color should be length 4");
-        assert(circle_color.length === 4, "Color should be length 4");
-        assert(Number.isInteger(num_balls), "Num balls should be an integer");
-        assert(is_bool(debug), "Debug value should be a boolean", debug);
-        assert(!Number.isNaN(size), "Size is not an Integer!", size);
-
-        const shader_module = await load_ball_shader_module(device, debug);
+        const shader_module = await load_ball_shader_module(device, gui.debug);
 
         // Prepare data
-        let ball_position = new Float32Array(num_balls * 4);
-        let ball_velocity = new Float32Array(num_balls * 4);
-        let ball_radius = new Float32Array(num_balls);
+        let ball_position = new Float32Array(gui.amount * 4);
+        let ball_velocity = new Float32Array(gui.amount * 4);
+        let ball_radius = new Float32Array(gui.amount);
 
-        for (let i = 0; i < num_balls; i++) {
+        for (let i = 0; i < gui.amount; i++) {
             let offset = i * 4
             ball_position.set([random(), random(), random(), 1.0], offset);
             ball_velocity.set([random(), random(), random(), 1.0], offset);
-            ball_radius.set([size], i);
+            ball_radius.set([gui.size], i);
         }
 
         // buffers
@@ -202,7 +205,7 @@ export class CirclesRenderer extends Renderer {
             label: "Circles pass encoder",
             colorAttachments: [
                 {
-                    clearValue: clear_color,
+                    clearValue: gui.bg_color,
                     loadOp: "clear",
                     storeOp: "store",
                     view: context.getCurrentTexture().createView(),
@@ -211,7 +214,7 @@ export class CirclesRenderer extends Renderer {
         };
 
         // One time write
-        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...circle_color, canvas.width, canvas.height]));
+        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color, canvas.width, canvas.height]));
         device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
         device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
         device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
@@ -228,7 +231,7 @@ export class CirclesRenderer extends Renderer {
             const compute_pass = command_encoder.beginComputePass();
             compute_pass.setPipeline(compute_pipeline);
             compute_pass.setBindGroup(0, compute_bind_group);
-            compute_pass.dispatchWorkgroups(Math.ceil(num_balls / 32));
+            compute_pass.dispatchWorkgroups(Math.ceil(gui.amount / 32));
             compute_pass.end();
 
             const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
@@ -236,7 +239,7 @@ export class CirclesRenderer extends Renderer {
             render_pass.setBindGroup(0, render_bind_group);
             render_pass.setVertexBuffer(0, ball_position_buffer);
             render_pass.setVertexBuffer(1, ball_radius_buffer);
-            render_pass.draw(3, num_balls);
+            render_pass.draw(3, gui.amount);
             render_pass.end();
 
             device.queue.submit([command_encoder.finish()]);

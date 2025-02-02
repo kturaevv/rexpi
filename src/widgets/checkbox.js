@@ -1,11 +1,15 @@
 import { generate_short_id } from "../utils.js";
 import Visibility from "./visibility.js";
+import Widget from "./widget.js";
 
 var CHECKBOX_WIDGET_COUNT = 0;
 
-export class CheckboxWidget {
+export class CheckboxWidget extends Widget {
     constructor(label = "Checkbox Widget") {
+        super();
+
         CHECKBOX_WIDGET_COUNT += 1;
+
         this.id = generate_short_id() + `_${CHECKBOX_WIDGET_COUNT}`;
 
         this.value = false;

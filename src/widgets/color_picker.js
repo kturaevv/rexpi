@@ -1,10 +1,12 @@
 import { generate_short_id } from "../utils.js";
 import Visibility from "./visibility.js";
+import Widget from "./widget.js";
 
 var COLOR_WIDGET_COUNT = 0;
 
-export class ColorWidget {
+export class ColorWidget extends Widget {
     constructor(label = "Text Widget", defaultval = null) {
+        super();
 
         COLOR_WIDGET_COUNT += 1;
 
