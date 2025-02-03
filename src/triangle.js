@@ -8,7 +8,7 @@ export class TriangleRenderer extends Renderer {
      * @param {GPUDevice} device 
      * @param {GPUCanvasContext} context
      * */
-    init(device, context) {
+    async init(device, context) {
 
         const shader = `
         struct VertexOut {

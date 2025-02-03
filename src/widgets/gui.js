@@ -1,3 +1,4 @@
+import Renderer from "../renderer.js";
 import Widget from "./widget.js";
 
 export default class GUI {
@@ -9,7 +10,7 @@ export default class GUI {
      * @param {String} name
      * @param {Widget} widget
      * */
-    add(name, widget) {
+    add(name = null, widget) {
         this.elements.push([name, widget]);
     }
 

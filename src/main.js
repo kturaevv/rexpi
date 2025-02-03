@@ -5,9 +5,10 @@ import { CirclesRenderer } from "./circles.js";
 import { ColorWidget } from "./widgets/color_picker.js";
 import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
+import { ButtonWidget } from "./widgets/button.js";
 import { SliderWidget } from "./widgets/slider.js";
-import CubeRenderer from "./cube.js";
 import GUI from "./widgets/gui.js";
+import AppRegistry from "./widgets/registry.js";
 
 
 async function init() {
@@ -54,64 +55,22 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const triangle_button = document.getElementById('triangle_button');
-    const circles_button = document.getElementById('circles_button');
-    const cube_button = document.getElementById('cube_button');
+    const triangle_button = new ButtonWidget("Triangle", false);
+    const circles_button = new ButtonWidget("Circles", false);
+    const cube_button = new ButtonWidget("Cube", false);
 
-    assert(triangle_button, "Triangle button is not found!");
-    assert(circles_button, "Circles button is not found!");
-    assert(circles_button, "Cube button is not found!");
+    const circles = new GUI();
+    circles.add('debug', new CheckboxWidget("Debug"));
+    circles.add('amount', new NumberWidget("Amount", 100));
+    circles.add('bg_color', new ColorWidget("Background Color"));
+    circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
+    circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
 
-    let currently_running_renderer = null;
-    const turn_off_renderer = (renderer) => {
-        if (currently_running_renderer) {
-            currently_running_renderer.terminate();
-        }
-        currently_running_renderer = renderer;
-    };
+    const sections = new AppRegistry();
+    sections.register(document.getElementById(circles_button.id), CirclesRenderer, [device, context, circles], circles);
+    sections.register(document.getElementById(triangle_button.id), TriangleRenderer, [device, context]);
 
-    const circles_gui = new GUI();
-    circles_gui.add('debug', new CheckboxWidget("Debug"));
-    circles_gui.add('amount', new NumberWidget("Amount", 100));
-    circles_gui.add('bg_color', new ColorWidget("Background Color"));
-    circles_gui.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
-    circles_gui.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
-
-    const triangle_renderer = new TriangleRenderer().init(device, context);
-
-    triangle_button.addEventListener('click', async () => {
-        triangle_renderer.render();
-        turn_off_renderer(triangle_renderer);
-        circles_gui.make_invisible();
-    });
-
-    console.log(circles_gui.values());
-
-    circles_button.addEventListener('click', async () => {
-        circles_gui.make_visible();
-        const circles_renderer = new CirclesRenderer();
-        await circles_renderer.init(device, context, circles_gui);
-        circles_renderer.render();
-        turn_off_renderer(circles_renderer);
-    });
-
-    cube_button.addEventListener("click", async () => {
-        circles_gui.make_invisible();
-        const cube_renderer = new CubeRenderer();
-        await cube_renderer.init(device, context);
-        cube_renderer.render();
-    });
-
-    for (const widget of circles_gui.widgets()) {
-        document.addEventListener(widget.event, async () => {
-            const circles_renderer = new CirclesRenderer();
-            await circles_renderer.init(device, context, circles_gui);
-            circles_renderer.render();
-            turn_off_renderer(circles_renderer);
-        });
-    }
-
-    circles_button.click();
+    document.getElementById(circles_button.id).click();
 }
 
 await main();
