@@ -23,7 +23,7 @@ export class CheckboxWidget extends Widget {
 
     get_checkbox_widget() {
         return `
-            <div class="m-1 p-2 border rounded-lg shadow-sm bg-white flex-none" id=${this.id}>
+            <div class="" id=${this.id}>
                 <div class="flex items-center justify-between space-x-4">
                     <label class="w-20 text-gray-700 text-nowrap font-bold">${this.label}</label>
                     <input

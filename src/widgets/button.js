@@ -20,7 +20,7 @@ export class ButtonWidget extends Widget {
 
     get_button_widget() {
         return `
-            <div class="m-1 p-2 border rounded-lg shadow-sm bg-white flex-none" id=${this.id}>
+            <div class="" id=${this.id}>
                 <div class="flex items-center justify-between space-x-4">
                     <button
                         id=${this.button_tag}

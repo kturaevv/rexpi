@@ -39,7 +39,7 @@ export class ColorWidget extends Widget {
     get_color_picker_widget() {
         return `
         <!-- Color picker widget -->
-        <div class="m-1 p-2 border rounded-lg shadow-sm bg-white invisible" id=${this.id}>
+        <div class="" id=${this.id}>
             <label class="w-20 text-gray-700 font-bold">${this.label}</label >
             
             <!-- Color Input Controls -->

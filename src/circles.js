@@ -22,7 +22,7 @@ async function load_ball_shader_module(device, debug) {
     let fs_file = '';
 
     if (debug === true) {
-        fs_file = await load_shader_file("circles_fs_gui.debug.wgsl")
+        fs_file = await load_shader_file("circles_fs_debug.wgsl")
     } else {
         fs_file = await load_shader_file("circles_fs.wgsl")
     }
@@ -158,6 +158,7 @@ export class CirclesRenderer extends Renderer {
      * */
     async init(device, context, gui) {
         gui = gui.data();
+        console.log(gui);
         assert(gui.bg_color.length === 4, "Color should be length 4");
         assert(gui.color.length === 4, "Color should be length 4");
         assert(Number.isInteger(gui.amount), "Num balls should be an integer");

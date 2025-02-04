@@ -13,8 +13,6 @@ export default class CubeRenderer extends Renderer {
      * @param {GPUDevice} device 
      * */
     async init(device, context) {
-
-
         this.render_callback = () => {
             if (!this.is_rendering) return;
             requestAnimationFrame(this.render_callback);

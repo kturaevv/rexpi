@@ -12,13 +12,14 @@ export default class GUI {
      * */
     add(name = null, widget) {
         this.elements.push([name, widget]);
+        widget.insert_border();
     }
 
     /**
     * @returns {Array<Widget>}
     */
     widgets() {
-        return this.elements.map(([_, widget]) => widget);
+        return this.elements.flatMap(([_, widget]) => widget.has_child_widgets() ? widget.get_child_widgets() : widget);
     }
 
     values() {

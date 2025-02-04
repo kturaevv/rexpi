@@ -9,6 +9,7 @@ import { ButtonWidget } from "./widgets/button.js";
 import { SliderWidget } from "./widgets/slider.js";
 import GUI from "./widgets/gui.js";
 import AppRegistry from "./widgets/registry.js";
+import { StackedWidgets } from "./widgets/stack_widgets.js";
 
 
 async function init() {
@@ -55,9 +56,9 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const triangle_button = new ButtonWidget("Triangle", false);
-    const circles_button = new ButtonWidget("Circles", false);
-    const cube_button = new ButtonWidget("Cube", false);
+    const render_opts = new StackedWidgets([], 2);
+    render_opts.add(new ButtonWidget("Triangle", false));
+    render_opts.add(new ButtonWidget("Circles", false));
 
     const circles = new GUI();
     circles.add('debug', new CheckboxWidget("Debug"));
@@ -67,10 +68,10 @@ async function main() {
     circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
 
     const sections = new AppRegistry();
-    sections.register(document.getElementById(circles_button.id), CirclesRenderer, [device, context, circles], circles);
-    sections.register(document.getElementById(triangle_button.id), TriangleRenderer, [device, context]);
+    sections.register(document.getElementById(render_opts.widgets[0].id), TriangleRenderer, [device, context]);
+    sections.register(document.getElementById(render_opts.widgets[1].id), CirclesRenderer, [device, context, circles], circles);
 
-    document.getElementById(circles_button.id).click();
+    document.getElementById(render_opts.widgets[1].id).click();
 }
 
 await main();

@@ -27,7 +27,7 @@ export class NumberWidget extends Widget {
     get_number_widget() {
         return `
             <!--Quantity Input Section -->
-                <div class="m-1 p-2 border rounded-lg shadow-sm bg-white invisible" id=${this.id}>
+                <div class="" id=${this.id}>
                     <div class="flex items-center space-x-4">
                         <label class="w-20 text-gray-700 font-bold">${this.name}</label >
                         <input

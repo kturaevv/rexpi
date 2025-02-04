@@ -31,6 +31,8 @@ export default class AppRegistry {
             this.switch_renderer(renderer);
         });
 
+        console.log('dslfkj', gui.widgets());
+
         // Handle GUI widget events
         for (const widget of gui.widgets()) {
             document.addEventListener(widget.event, async () => {
