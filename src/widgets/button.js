@@ -20,15 +20,13 @@ export class ButtonWidget extends Widget {
 
     get_button_widget() {
         return `
-            <div class="" id=${this.id}>
-                <div class="flex items-center justify-between space-x-4">
-                    <button
-                        id=${this.button_tag}
-                        class="px-4 py-2 bg-neutral-700 text-white rounded hover:bg-neutral-800 transition-colors duration-200 w-full"
-                    >
-                        ${this.label}
-                    </button>
-                </div>
+            <div class="flex items-center justify-between space-x-4" id=${this.id}>
+                <button
+                    id=${this.button_tag}
+                    class="flex items-center justify-center h-8 px-4 py-2 bg-neutral-700 text-white rounded hover:bg-neutral-800 transition-colors duration-200 w-full"
+                >
+                    ${this.label}
+                </button>
             </div>
         `;
     }
