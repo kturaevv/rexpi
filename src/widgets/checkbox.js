@@ -23,16 +23,14 @@ export class CheckboxWidget extends Widget {
 
     get_checkbox_widget() {
         return `
-            <div class="" id=${this.id}>
-                <div class="flex items-center justify-between space-x-4">
-                    <label class="w-20 text-gray-700 text-nowrap font-bold">${this.label}</label>
-                    <input
-                        type="checkbox"
-                        value="false"
-                        class="w-5 h-5 rounded border-gray-300 text-blue-500"
-                        id=${this.input_tag}
-                    />
-                </div>
+            <div class="h-8 flex items-center justify-between space-x-4" id=${this.id}>
+                <label class="text-gray-700 text-nowrap font-bold">${this.label}</label>
+                <input
+                    type="checkbox"
+                    value="false"
+                    class="w-4 h-4 rounded-lg border-gray-300 text-blue-500"
+                    id=${this.input_tag}
+                />
             </div>
     `;
     }

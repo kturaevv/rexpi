@@ -27,19 +27,17 @@ export class NumberWidget extends Widget {
     get_number_widget() {
         return `
             <!--Quantity Input Section -->
-                <div class="" id=${this.id}>
-                    <div class="flex items-center space-x-4">
-                        <label class="w-20 text-gray-700 font-bold">${this.name}</label >
-                        <input
-                            type="number" min="1" max="100" value="${this.value}"
-                            class="px-3 py-2 border rounded-lg w-24 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            id=${this.input_name}
-                        />
-                        <div class="flex space-x-2">
-                            <button id=${this.min_button} class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > - </button>
-                            <button id=${this.add_button} class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > + </button>
-                        </div>
-                    </div >
+                <div class="h-8 flex items-center justify-between space-x-2" id=${this.id}>
+                    <label class="w-20 text-gray-700 font-bold">${this.name}</label >
+                    <input
+                        type="number" min="1" max="100" value="${this.value}"
+                        class="border-none rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        id=${this.input_name}
+                    />
+                    <div class="flex space-x-2">
+                        <button id=${this.min_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > - </button>
+                        <button id=${this.add_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > + </button>
+                    </div>
                 </div >
             `;
     }

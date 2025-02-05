@@ -56,7 +56,7 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const render_opts = new StackedWidgets([], 2);
+    const render_opts = new StackedWidgets([], 2, 2);
     render_opts.add(new ButtonWidget("Triangle", false));
     render_opts.add(new ButtonWidget("Circles", false));
 

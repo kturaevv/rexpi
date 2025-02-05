@@ -4,7 +4,7 @@ export default class Widget {
     constructor() {
         this.id = null;
         this.value = null;
-        this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white flex-none";
+        this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white";
     }
 
     init() {

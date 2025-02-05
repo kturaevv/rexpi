@@ -4,9 +4,10 @@ import Visibility from "./visibility.js";
 
 
 export class StackedWidgets extends Widget {
-    constructor(widgets = [], columns = 1) {
+    constructor(widgets = [], columns = 1, gap = 0) {
         super();
         this.id = generate_short_id() + "_stacked";
+        this.gap = gap;
         this.columns = columns;
         this.widgets = widgets;
         this.visibility = new Visibility(this.id);
@@ -28,7 +29,7 @@ export class StackedWidgets extends Widget {
 
     register() {
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", `<div id=${this.id} class='grid grid-cols-${this.columns} gap-2'></div>`);
+        sidebar.insertAdjacentHTML("beforeend", `<div id=${this.id} class='grid grid-cols-${this.columns} gap-${this.gap}'></div>`);
         const stack_widget = document.getElementById(this.id);
         for (const widget of this.widgets) {
             stack_widget.appendChild(document.getElementById(widget.id));

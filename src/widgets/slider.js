@@ -27,7 +27,7 @@ export class SliderWidget extends Widget {
 
     get_slider_widget() {
         return `    
-        <div class="flex items-center" id=${this.id}>
+        <div class="h-8 flex items-center" id=${this.id}>
             <label for="green_slider" class="w-20 text-gray-700 font-bold">${this.label}</label>
             <input
                 type="range" min=${this.slider_min} max=${this.slider_max} value=${this.value} step=${this.slider_step}

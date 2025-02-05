@@ -43,7 +43,7 @@ export class ColorWidget extends Widget {
             <label class="w-20 text-gray-700 font-bold">${this.label}</label >
             
             <!-- Color Input Controls -->
-            <div class="space-y-4">
+            <div class="space-y-1">
                 <!-- Red Input -->
                 <div class="flex items-center">
                     <label for="red_slider" class="w-20 text-gray-700">Red:</label>
@@ -90,9 +90,7 @@ export class ColorWidget extends Widget {
             </div>
             
             <!--Color _preview Box-->
-            <div class="mt-4 p-2">
-                <div class="h-4 rounded-lg border" id=${this.color_preview}></div>
-            </div>
+            <div class="mt-2 h-4 rounded-lg border" id=${this.color_preview}></div>
         </div >
     `;
     }
