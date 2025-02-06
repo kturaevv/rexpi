@@ -49,7 +49,7 @@ export class ColorWidget extends Widget {
                     <label for="red_slider" class="w-20 text-gray-700">Red:</label>
                     <input
                         type="range" min="0" max="255" value="128"
-                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.red_slider}
                     />
                     <label for="alpha_slider" class="ml-2 w-12 text-right text-gray-600" id=${this.red_value}>1.0</label>
@@ -60,7 +60,7 @@ export class ColorWidget extends Widget {
                     <label for="green_slider" class="w-20 text-gray-700">Green:</label>
                     <input
                         type="range" min="0" max="255" value="128"
-                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.green_slider}
                     />
                     <label for="alpha_slider" class="ml-2 w-12 text-right text-gray-600" id=${this.green_value}>1.0</label>
@@ -71,7 +71,7 @@ export class ColorWidget extends Widget {
                     <label for="blue_slider" class="w-20 text-gray-700">Blue:</label>
                     <input
                         type="range" min="0" max="255" value="128"
-                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.blue_slider}
                     />
                     <label for="alpha_slider" class="ml-2 w-12 text-right text-gray-600" id=${this.blue_value}>1.0</label>
@@ -82,7 +82,7 @@ export class ColorWidget extends Widget {
                     <label for="alpha_slider" class="w-20 text-gray-700">Alpha:</label>
                     <input
                         type="range" min="0" max="1" step="0.1" value="1"
-                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.alpha_slider}
                     />
                     <label for="alpha_slider" class="ml-2 w-12 text-right text-gray-600" id=${this.alpha_value}>1.0</label>

@@ -31,7 +31,7 @@ export class SliderWidget extends Widget {
             <label for="green_slider" class="w-20 text-gray-700 font-bold">${this.label}</label>
             <input
                 type="range" min=${this.slider_min} max=${this.slider_max} value=${this.value} step=${this.slider_step}
-                class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                 id=${this.slider_tag}
             />
             <label for=${this.slider_tag} class="ml-2 w-12 text-right text-gray-600" id=${this.slider_value_tag}>${this.value}</label>
