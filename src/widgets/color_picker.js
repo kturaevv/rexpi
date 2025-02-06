@@ -5,7 +5,7 @@ import Widget from "./widget.js";
 var COLOR_WIDGET_COUNT = 0;
 
 export class ColorWidget extends Widget {
-    constructor(label = "Text Widget", defaultval = null) {
+    constructor(label = "Text Widget", defaultval = [128, 128, 128, 1.0]) {
         super();
 
         COLOR_WIDGET_COUNT += 1;
@@ -27,13 +27,10 @@ export class ColorWidget extends Widget {
         this.label = label;
         this.value = null;
         this.event = this.label + this.id;
-
+        this.start_values = defaultval;
         this.visibility = new Visibility(this.id);
-        this.register();
 
-        if (defaultval) {
-            this.set_color(...defaultval);
-        }
+        this.register();
     }
 
     get_color_picker_widget() {
@@ -48,7 +45,7 @@ export class ColorWidget extends Widget {
                 <div class="flex items-center">
                     <label for="red_slider" class="w-20 text-gray-700">Red:</label>
                     <input
-                        type="range" min="0" max="255" value="128"
+                        type="range" min="0" max="255" value=${this.start_values[0]}
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.red_slider}
                     />
@@ -59,7 +56,7 @@ export class ColorWidget extends Widget {
                 <div class="flex items-center">
                     <label for="green_slider" class="w-20 text-gray-700">Green:</label>
                     <input
-                        type="range" min="0" max="255" value="128"
+                        type="range" min="0" max="255" value=${this.start_values[1]}
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.green_slider}
                     />
@@ -70,7 +67,7 @@ export class ColorWidget extends Widget {
                 <div class="flex items-center">
                     <label for="blue_slider" class="w-20 text-gray-700">Blue:</label>
                     <input
-                        type="range" min="0" max="255" value="128"
+                        type="range" min="0" max="255" value=${this.start_values[2]}
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.blue_slider}
                     />
@@ -81,7 +78,7 @@ export class ColorWidget extends Widget {
                 <div class="flex items-center">
                     <label for="alpha_slider" class="w-20 text-gray-700">Alpha:</label>
                     <input
-                        type="range" min="0" max="1" step="0.1" value="1"
+                        type="range" min="0" max="1" step="0.1" value=${this.start_values[3]}
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-neutral-600"
                         id=${this.alpha_slider}
                     />
