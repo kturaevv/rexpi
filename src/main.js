@@ -10,7 +10,7 @@ import { SliderWidget } from "./widgets/slider.js";
 import GUI from "./widgets/gui.js";
 import AppRegistry from "./widgets/registry.js";
 import { StackedWidgets } from "./widgets/stack_widgets.js";
-
+import CubeRenderer from "./cube.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -38,6 +38,9 @@ async function init() {
     });
     observer.observe(canvas);
 
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
     context.configure({
         device: device,
         format: navigator.gpu.getPreferredCanvasFormat(),
@@ -56,9 +59,10 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const render_opts = new StackedWidgets([], 2, 2);
+    const render_opts = new StackedWidgets([], 3, 2);
     render_opts.add(new ButtonWidget("Triangle", false));
     render_opts.add(new ButtonWidget("Circles", false));
+    render_opts.add(new ButtonWidget("Cube", false));
 
     const circles = new GUI();
     circles.add('debug', new CheckboxWidget("Debug"));
@@ -70,8 +74,9 @@ async function main() {
     const sections = new AppRegistry();
     sections.register(document.getElementById(render_opts.widgets[0].id), TriangleRenderer, [device, context]);
     sections.register(document.getElementById(render_opts.widgets[1].id), CirclesRenderer, [device, context, circles], circles);
+    sections.register(document.getElementById(render_opts.widgets[2].id), CubeRenderer, [device, context]);
 
-    document.getElementById(render_opts.widgets[1].id).click();
+    document.getElementById(render_opts.widgets[2].id).click();
 }
 
 await main();
