@@ -48,7 +48,6 @@ export class SliderWidget extends Widget {
 
         // Get all required elements
         const self = document.getElementById(this.id);
-        console.log(self);
         const slider = document.getElementById(this.slider_tag);
         const slider_value = document.getElementById(this.slider_value_tag);
 

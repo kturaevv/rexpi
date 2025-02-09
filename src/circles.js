@@ -1,46 +1,14 @@
 import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
-import Widget from "./widgets/widget.js";
 import GUI from "./widgets/gui.js";
+import shaders from "./shaders.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
-
-
-async function load_shader_file(name) {
-    const shader_file = await fetch(name)
-        .then((res) => res.text())
-        .then((text) => text)
-        .catch((e) =>
-            console.log("Catched error while loading shader module!", e)
-        );
-    assert(typeof shader_file === "string", "Shader module is not a string!");
-    return shader_file;
-}
-
-async function load_ball_shader_module(device, debug) {
-    const vs_file = await load_shader_file("circles_vs.wgsl")
-    let fs_file = '';
-
-    if (debug === true) {
-        fs_file = await load_shader_file("circles_fs_debug.wgsl")
-    } else {
-        fs_file = await load_shader_file("circles_fs.wgsl")
-    }
-
-    return device.createShaderModule({
-        code: vs_file + fs_file,
-    });
-}
-
 
 /** 
  * @param {GPUDevice} device
  * */
-function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, shader) {
-    const compute_shader_module = device.createShaderModule({
-        label: "Compute shader",
-        code: shader,
-    });
+function create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module) {
     const compute_bind_group_layout = device.createBindGroupLayout({
         label: "ComputeBindGroupLayout",
         entries: [
@@ -164,7 +132,19 @@ export class CirclesRenderer extends Renderer {
         assert(is_bool(gui.debug), "Debug value should be a boolean", gui.debug);
         assert(!Number.isNaN(gui.size), "Size is not an Integer!", gui.size);
 
-        const shader_module = await load_ball_shader_module(device, gui.debug);
+        const compute_shader_module = device.createShaderModule({
+            label: "Circles compute shader",
+            code: shaders.circles_cs,
+        });
+
+        const render_shader_module = (() => {
+            const frag = gui.debug ? shaders.circles_fs_debug : shaders.circles_fs;
+            const vert = shaders.circles_vs;
+            return device.createShaderModule({
+                label: 'Circles shader',
+                code: vert + frag,
+            });
+        })();
 
         // Prepare data
         let ball_position = new Float32Array(gui.amount * 4);
@@ -190,15 +170,21 @@ export class CirclesRenderer extends Renderer {
             mappedAtCreation: false,
         });
 
+        // One time write
+        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color, canvas.width, canvas.height]));
+        device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
+        device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
+        device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
+
         let [
             render_pipeline,
             render_bind_group
-        ] = create_ball_render_pipeline(device, viewport_buffer, shader_module);
+        ] = create_ball_render_pipeline(device, viewport_buffer, render_shader_module);
 
         let [
             compute_pipeline,
             compute_bind_group
-        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, await load_shader_file("circles_cs.wgsl"));
+        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module);
 
 
         const render_pass_descriptor = {
@@ -212,12 +198,6 @@ export class CirclesRenderer extends Renderer {
                 },
             ],
         };
-
-        // One time write
-        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color, canvas.width, canvas.height]));
-        device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
-        device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
-        device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
 
         this.render_callback = () => {
             if (!this.is_rendering) { return; }

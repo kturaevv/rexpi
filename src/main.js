@@ -71,6 +71,9 @@ async function main() {
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
     circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
 
+    // const circles_renderer = new CirclesRenderer(device, context, circles.amount);
+    // circles_renderer.render();
+
     const sections = new AppRegistry();
     sections.register(document.getElementById(render_opts.widgets[0].id), TriangleRenderer, [device, context]);
     sections.register(document.getElementById(render_opts.widgets[1].id), CirclesRenderer, [device, context, circles], circles);
