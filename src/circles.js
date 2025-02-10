@@ -2,6 +2,7 @@ import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
 import GUI from "./widgets/gui.js";
 import shaders from "./shaders.js";
+import Widget from "./widgets/widget.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
@@ -122,43 +123,30 @@ export class CirclesRenderer extends Renderer {
     /** 
      * @param {GPUDevice} device
      * @param {GPUCanvasContext} context
-     * @param {GUI} gui 
+     * @param {GUI} data 
      * */
-    async init(device, context, gui) {
-        gui = gui.data();
-        assert(gui.bg_color.length === 4, "Color should be length 4");
-        assert(gui.color.length === 4, "Color should be length 4");
-        assert(Number.isInteger(gui.amount), "Num balls should be an integer");
-        assert(is_bool(gui.debug), "Debug value should be a boolean", gui.debug);
-        assert(!Number.isNaN(gui.size), "Size is not an Integer!", gui.size);
-
-        const compute_shader_module = device.createShaderModule({
-            label: "Circles compute shader",
-            code: shaders.circles_cs,
-        });
-
-        const render_shader_module = (() => {
-            const frag = gui.debug ? shaders.circles_fs_debug : shaders.circles_fs;
-            const vert = shaders.circles_vs;
-            return device.createShaderModule({
-                label: 'Circles shader',
-                code: vert + frag,
-            });
-        })();
+    constructor(device, context, gui) {
+        super();
+        const data = gui.data();
+        assert(data.bg_color.length === 4, "Color should be length 4");
+        assert(data.color.length === 4, "Color should be length 4");
+        assert(Number.isInteger(data.amount), "Num balls should be an integer");
+        assert(is_bool(data.debug), "Debug value should be a boolean", data.debug);
+        assert(!Number.isNaN(data.size), "Size is not an Integer!", data.size);
 
         // Prepare data
-        let ball_position = new Float32Array(gui.amount * 4);
-        let ball_velocity = new Float32Array(gui.amount * 4);
-        let ball_radius = new Float32Array(gui.amount);
+        let ball_position = new Float32Array(data.amount * 4);
+        let ball_velocity = new Float32Array(data.amount * 4);
+        let ball_radius = new Float32Array(data.amount);
 
-        for (let i = 0; i < gui.amount; i++) {
+        for (let i = 0; i < data.amount; i++) {
             let offset = i * 4
             ball_position.set([random(), random(), random(), 1.0], offset);
             ball_velocity.set([random(), random(), random(), 1.0], offset);
-            ball_radius.set([gui.size], i);
+            ball_radius.set([data.size], i);
         }
 
-        // buffers
+        // Buffers
         const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
         const ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
         const ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
@@ -170,37 +158,63 @@ export class CirclesRenderer extends Renderer {
             mappedAtCreation: false,
         });
 
+        const update_viewport_buffer = () => {
+            device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color.get_value(), canvas.width, canvas.height]));
+        };
+        document.addEventListener(gui.color.event, update_viewport_buffer);
+
         // One time write
-        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color, canvas.width, canvas.height]));
+        update_viewport_buffer();
+        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...data.color, canvas.width, canvas.height]));
         device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
         device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
         device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
 
-        let [
-            render_pipeline,
-            render_bind_group
-        ] = create_ball_render_pipeline(device, viewport_buffer, render_shader_module);
+        let [render_pipeline, render_bind_group, compute_pipeline, compute_bind_group] = [null, null, null, null];
 
-        let [
-            compute_pipeline,
-            compute_bind_group
-        ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module);
+        const update_shaders = () => {
+            const compute_shader_module = device.createShaderModule({
+                label: "Circles compute shader",
+                code: shaders.circles_cs,
+            });
 
+            const render_shader_module = (() => {
+                const frag = gui.debug.get_value() ? shaders.circles_fs_debug : shaders.circles_fs;
+                const vert = shaders.circles_vs;
+                return device.createShaderModule({
+                    label: 'Circles shader',
+                    code: vert + frag,
+                });
+            })();
 
-        const render_pass_descriptor = {
-            label: "Circles pass encoder",
-            colorAttachments: [
-                {
-                    clearValue: gui.bg_color,
-                    loadOp: "clear",
-                    storeOp: "store",
-                    view: context.getCurrentTexture().createView(),
-                },
-            ],
+            [
+                render_pipeline,
+                render_bind_group
+            ] = create_ball_render_pipeline(device, viewport_buffer, render_shader_module);
+
+            [
+                compute_pipeline,
+                compute_bind_group
+            ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module);
         };
+
+        document.addEventListener(gui.debug.event, update_shaders);
+        update_shaders();
 
         this.render_callback = () => {
             if (!this.is_rendering) { return; }
+
+            const render_pass_descriptor = {
+                label: "Circles pass encoder",
+                colorAttachments: [
+                    {
+                        clearValue: gui.bg_color.get_value(),
+                        loadOp: "clear",
+                        storeOp: "store",
+                        view: context.getCurrentTexture().createView(),
+                    },
+                ],
+            };
 
             // Update color attachment view
             render_pass_descriptor.colorAttachments[0].view =
@@ -211,7 +225,7 @@ export class CirclesRenderer extends Renderer {
             const compute_pass = command_encoder.beginComputePass();
             compute_pass.setPipeline(compute_pipeline);
             compute_pass.setBindGroup(0, compute_bind_group);
-            compute_pass.dispatchWorkgroups(Math.ceil(gui.amount / 32));
+            compute_pass.dispatchWorkgroups(Math.ceil(data.amount / 32));
             compute_pass.end();
 
             const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
@@ -219,7 +233,7 @@ export class CirclesRenderer extends Renderer {
             render_pass.setBindGroup(0, render_bind_group);
             render_pass.setVertexBuffer(0, ball_position_buffer);
             render_pass.setVertexBuffer(1, ball_radius_buffer);
-            render_pass.draw(3, gui.amount);
+            render_pass.draw(3, data.amount);
             render_pass.end();
 
             device.queue.submit([command_encoder.finish()]);

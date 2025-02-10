@@ -6,7 +6,8 @@ export default class CubeRenderer extends Renderer {
     /**
      * @param {GPUDevice} device 
      * */
-    async init(device, context) {
+    constructor(device, context) {
+        super();
 
         const settings = {
             fov: 60 * Math.PI / 180,
@@ -184,6 +185,7 @@ fn vs_main(
 
         let rotation = 0;
         this.render_callback = () => {
+            if (!this.is_rendering) return;
             rotation += 0.005;
             const model_matrix = mat4.create();
             mat4.rotateY(model_matrix, model_matrix, rotation);

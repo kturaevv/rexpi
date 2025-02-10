@@ -1,4 +1,3 @@
-import Renderer from "../renderer.js";
 import Widget from "./widget.js";
 
 export default class GUI {
@@ -11,6 +10,7 @@ export default class GUI {
      * @param {Widget} widget
      * */
     add(name = null, widget) {
+        this[name] = widget;
         this.elements.push([name, widget]);
         widget.insert_border();
     }
@@ -20,10 +20,6 @@ export default class GUI {
     */
     widgets() {
         return this.elements.flatMap(([_, widget]) => widget.has_child_widgets() ? widget.get_child_widgets() : widget);
-    }
-
-    values() {
-        return this.widgets().map((widget) => widget.get_value());
     }
 
     data() {

@@ -71,15 +71,16 @@ async function main() {
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
     circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
 
-    // const circles_renderer = new CirclesRenderer(device, context, circles.amount);
-    // circles_renderer.render();
+    const circles_renderer = new CirclesRenderer(device, context, circles);
+    const triangle_render = new TriangleRenderer(device, context);
+    const cube_render = new CubeRenderer(device, context);
 
     const sections = new AppRegistry();
-    sections.register(document.getElementById(render_opts.widgets[0].id), TriangleRenderer, [device, context]);
-    sections.register(document.getElementById(render_opts.widgets[1].id), CirclesRenderer, [device, context, circles], circles);
-    sections.register(document.getElementById(render_opts.widgets[2].id), CubeRenderer, [device, context]);
+    sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);
+    sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
+    sections.register(document.getElementById(render_opts.cube.id), cube_render);
 
-    document.getElementById(render_opts.widgets[2].id).click();
+    document.getElementById(render_opts.cube.id).click();
 }
 
 await main();

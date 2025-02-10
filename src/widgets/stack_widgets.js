@@ -38,6 +38,7 @@ export class StackedWidgets extends Widget {
 
     add(widget) {
         this.widgets.push(widget);
+        this[widget.label.toLowerCase()] = widget;
         const stack_widget = document.getElementById(this.id);
         stack_widget.appendChild(document.getElementById(widget.id));
     }

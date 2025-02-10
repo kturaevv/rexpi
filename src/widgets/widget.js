@@ -4,6 +4,8 @@ export default class Widget {
     constructor() {
         this.id = null;
         this.value = null;
+        this.event = null;
+        this.label = null;
         this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white";
     }
 
@@ -21,12 +23,17 @@ export default class Widget {
         return this.value;
     }
 
-    has_child_widgets() {
-        return false;
+    get_event() {
+        assert(this.event !== null, "[event] value of a widget is null!");
+        return this.event;
     }
 
     get_child_widgets() {
-        return this;
+        throw new Error("[get_child_widgets] is unimplemented!!!");
+    }
+
+    has_child_widgets() {
+        return false;
     }
 
     insert_border() {
