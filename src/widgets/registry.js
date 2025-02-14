@@ -2,7 +2,7 @@ import GUI from "./gui.js";
 
 export default class AppRegistry {
     constructor() {
-        this.currently_running_renderer = null;
+        this.renderer = null;
         this.guis = [];
     }
 
@@ -10,16 +10,21 @@ export default class AppRegistry {
      * @param {Renderer} renderer
      */
     switch_renderer(renderer, render_gui) {
-        if (this.currently_running_renderer) {
-            this.currently_running_renderer.is_rendering = false;
+        if (this.renderer && this.renderer.id === renderer.id) {
+            return;
+        }
+
+        if (this.renderer) {
+            this.renderer.is_rendering = false;
             // this.currently_running_renderer.terminate();
+
         }
         for (const gui of this.guis) {
             gui.make_invisible();
         }
         render_gui.make_visible();
         renderer.render();
-        this.currently_running_renderer = renderer;
+        this.renderer = renderer;
     }
 
     /**

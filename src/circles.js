@@ -2,7 +2,6 @@ import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
 import GUI from "./widgets/gui.js";
 import shaders from "./shaders.js";
-import Widget from "./widgets/widget.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
@@ -134,72 +133,89 @@ export class CirclesRenderer extends Renderer {
         assert(is_bool(data.debug), "Debug value should be a boolean", data.debug);
         assert(!Number.isNaN(data.size), "Size is not an Integer!", data.size);
 
-        // Prepare data
-        let ball_position = new Float32Array(data.amount * 4);
-        let ball_velocity = new Float32Array(data.amount * 4);
-        let ball_radius = new Float32Array(data.amount);
-
-        for (let i = 0; i < data.amount; i++) {
-            let offset = i * 4
-            ball_position.set([random(), random(), random(), 1.0], offset);
-            ball_velocity.set([random(), random(), random(), 1.0], offset);
-            ball_radius.set([data.size], i);
-        }
-
-        // Buffers
-        const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-        const ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
-        const ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
-        const ball_radius_buffer = device.createBuffer({ size: ball_radius.byteLength, usage: ball_usage });
         const viewport_buffer = device.createBuffer({
             label: "Viewport uniform",
             size: 8 * 4, // 6 floats + padding
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
             mappedAtCreation: false,
         });
-
-        const update_viewport_buffer = () => {
+        const set_viewport = () => {
             device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color.get_value(), canvas.width, canvas.height]));
         };
-        document.addEventListener(gui.color.event, update_viewport_buffer);
+        document.addEventListener(gui.color.event, set_viewport);
+        set_viewport();
 
-        // One time write
-        update_viewport_buffer();
-        device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...data.color, canvas.width, canvas.height]));
-        device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
-        device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
-        device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
+        let ball_position_buffer = null;
+        let ball_velocity_buffer = null;
+        let ball_radius_buffer = null;
 
-        let [render_pipeline, render_bind_group, compute_pipeline, compute_bind_group] = [null, null, null, null];
+        let render_pipeline = null;
+        let render_bind_group = null;
+        let compute_pipeline = null;
+        let compute_bind_group = null;
 
-        const update_shaders = () => {
-            const compute_shader_module = device.createShaderModule({
-                label: "Circles compute shader",
-                code: shaders.circles_cs,
-            });
+        const init = () => {
+            const amount = gui.amount.get_value();
 
-            const render_shader_module = (() => {
-                const frag = gui.debug.get_value() ? shaders.circles_fs_debug : shaders.circles_fs;
-                const vert = shaders.circles_vs;
-                return device.createShaderModule({
-                    label: 'Circles shader',
-                    code: vert + frag,
+            let ball_position = null;
+            let ball_velocity = null;
+            let ball_radius = null;
+
+            // Prepare data
+            ball_position = new Float32Array(amount * 4);
+            ball_velocity = new Float32Array(amount * 4);
+            ball_radius = new Float32Array(amount);
+
+            for (let i = 0; i < amount; i++) {
+                let offset = i * 4
+                ball_position.set([random(), random(), random(), 1.0], offset);
+                ball_velocity.set([random(), random(), random(), 1.0], offset);
+                ball_radius.set([gui.size.get_value()], i);
+            }
+
+            // Buffers
+            const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+            ball_position_buffer = device.createBuffer({ size: ball_position.byteLength, usage: ball_usage });
+            ball_velocity_buffer = device.createBuffer({ size: ball_velocity.byteLength, usage: ball_usage });
+            ball_radius_buffer = device.createBuffer({ size: ball_radius.byteLength, usage: ball_usage });
+
+            device.queue.writeBuffer(ball_position_buffer, 0, ball_position);
+            device.queue.writeBuffer(ball_velocity_buffer, 0, ball_velocity);
+            device.queue.writeBuffer(ball_radius_buffer, 0, ball_radius);
+
+            const update_shaders = () => {
+                const compute_shader_module = device.createShaderModule({
+                    label: "Circles compute shader",
+                    code: shaders.circles_cs,
                 });
-            })();
 
-            [
-                render_pipeline,
-                render_bind_group
-            ] = create_ball_render_pipeline(device, viewport_buffer, render_shader_module);
+                const render_shader_module = (() => {
+                    const frag = gui.debug.get_value() ? shaders.circles_fs_debug : shaders.circles_fs;
+                    const vert = shaders.circles_vs;
+                    return device.createShaderModule({
+                        label: 'Circles shader',
+                        code: vert + frag,
+                    });
+                })();
 
-            [
-                compute_pipeline,
-                compute_bind_group
-            ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module);
+                [
+                    render_pipeline,
+                    render_bind_group
+                ] = create_ball_render_pipeline(device, viewport_buffer, render_shader_module);
+
+                [
+                    compute_pipeline,
+                    compute_bind_group
+                ] = create_ball_compute_pipeline(device, ball_position_buffer, ball_velocity_buffer, ball_radius_buffer, compute_shader_module);
+            };
+
+            document.addEventListener(gui.debug.event, update_shaders);
+            update_shaders();
         };
 
-        document.addEventListener(gui.debug.event, update_shaders);
-        update_shaders();
+        document.addEventListener(gui.amount.event, init);
+        document.addEventListener(gui.size.event, init);
+        init();
 
         this.render_callback = () => {
             if (!this.is_rendering) { return; }
@@ -225,7 +241,7 @@ export class CirclesRenderer extends Renderer {
             const compute_pass = command_encoder.beginComputePass();
             compute_pass.setPipeline(compute_pipeline);
             compute_pass.setBindGroup(0, compute_bind_group);
-            compute_pass.dispatchWorkgroups(Math.ceil(data.amount / 32));
+            compute_pass.dispatchWorkgroups(Math.ceil(gui.amount.get_value() / 64));
             compute_pass.end();
 
             const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
@@ -233,7 +249,7 @@ export class CirclesRenderer extends Renderer {
             render_pass.setBindGroup(0, render_bind_group);
             render_pass.setVertexBuffer(0, ball_position_buffer);
             render_pass.setVertexBuffer(1, ball_radius_buffer);
-            render_pass.draw(3, data.amount);
+            render_pass.draw(3, gui.amount.get_value());
             render_pass.end();
 
             device.queue.submit([command_encoder.finish()]);

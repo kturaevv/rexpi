@@ -66,10 +66,10 @@ async function main() {
 
     const circles = new GUI();
     circles.add('debug', new CheckboxWidget("Debug"));
-    circles.add('amount', new NumberWidget("Amount", 100));
+    circles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
+    circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
     circles.add('bg_color', new ColorWidget("Background Color"));
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
-    circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
 
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);
