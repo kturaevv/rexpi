@@ -5,7 +5,7 @@ import Widget from "./widget.js";
 var NUMBER_WIDGET_COUNT = 0;
 
 export class NumberWidget extends Widget {
-    constructor(label = "Number Widget", default_value) {
+    constructor(label = "Number Widget", default_value, min = 1, max = 100) {
         super();
 
         NUMBER_WIDGET_COUNT += 1;
@@ -21,6 +21,9 @@ export class NumberWidget extends Widget {
 
         this.visibility = new Visibility(this.id);
 
+        this.min = min;
+        this.max = max;
+
         this.register();
     }
 
@@ -30,7 +33,7 @@ export class NumberWidget extends Widget {
                 <div class="h-8 flex items-center justify-between space-x-2" id=${this.id}>
                     <label class="w-20 text-gray-700 font-bold">${this.name}</label >
                     <input
-                        type="number" min="1" max="100" value="${this.value}"
+                        type="number" min="${this.min}" max="${this.max}" value="${this.value}"
                         class="border-none rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                         id=${this.input_name}
                     />
@@ -54,8 +57,30 @@ export class NumberWidget extends Widget {
         const add_button = document.getElementById(this.add_button);
         const min_button = document.getElementById(this.min_button);
 
-        const increment = () => { number_input.value = parseInt(number_input.value) + 1; };
-        const decrement = () => { number_input.value = parseInt(number_input.value) - 1; };
+        const in_range = (val) => {
+            return (val >= this.min && val <= this.max) ? true : false;
+        };
+
+        const increment = () => {
+            let newval = parseInt(number_input.value) + 1;
+            if (!in_range(newval)) { return; }
+            [this.value, number_input.value] = [newval, newval];
+        };
+        const decrement = () => {
+            let newval = parseInt(number_input.value) - 1;
+            if (!in_range(newval)) { return; }
+            [this.value, number_input.value] = [newval, newval];
+        };
+        const set = () => {
+            let newval = parseInt(number_input.value);
+            let el = document.getElementById(this.id);
+            if (!in_range(newval)) {
+                el.classList.add('bg-red-50');
+                return;
+            }
+            el.classList.remove('bg-red-50');
+            [this.value, number_input.value] = [newval, newval];
+        };
 
         add_button.addEventListener("click", async () => {
             increment();
@@ -68,7 +93,7 @@ export class NumberWidget extends Widget {
         });
 
         number_input.addEventListener("input", async () => {
-            this.value = parseInt(number_input.value);
+            set();
             document.dispatchEvent(number_change_event);
         });
 
