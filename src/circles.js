@@ -143,6 +143,7 @@ export class CirclesRenderer extends Renderer {
             device.queue.writeBuffer(viewport_buffer, 0, new Float32Array([...gui.color.get_value(), canvas.width, canvas.height]));
         };
         document.addEventListener(gui.color.event, set_viewport);
+        document.addEventListener('canvas_resize', set_viewport)
         set_viewport();
 
         let ball_position_buffer = null;
