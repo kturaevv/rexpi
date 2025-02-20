@@ -14,10 +14,16 @@ import CubeRenderer from "./cube.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
-    assert(adapter, "Adapter not found");
+    if (!adapter) {
+        alert("WebGPU adapter not found. Your browser may not support WebGPU.");
+        throw new Error("Adapter not found");
+    }
 
     const device = await adapter.requestDevice();
-    assert(device, "Device not found!");
+    if (!device) {
+        alert("WebGPU device not found. Your browser may not support WebGPU.");
+        throw new Error("Device not found");
+    }
 
     const canvas = document.getElementById("canvas");
     assert(canvas, "Canvas not found!");
@@ -83,7 +89,7 @@ async function main() {
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
     sections.register(document.getElementById(render_opts.cube.id), cube_render);
 
-    document.getElementById(render_opts.cube.id).click();
+    document.getElementById(render_opts.circles.id).click();
 }
 
 await main();

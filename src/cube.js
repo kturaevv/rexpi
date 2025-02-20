@@ -76,34 +76,92 @@ const INDICES = new Uint32Array([
     4, 1, 0,
 ]);
 
+class GPUResources {
+    constructor(label, device) {
+        this.label = label;
+        this.device = device;
+    }
+
+    /**
+     * @param {GPUDevice} device
+     * */
+    create_buffer(label = '', data, usage) {
+        const buf = this.device.createBuffer({
+            label: this.label + ': ' + label,
+            size: data.byteLength,
+            usage: usage | GPUBufferUsage.COPY_DST
+        });
+        this.device.queue.writeBuffer(buf, 0, data);
+        return buf;
+    }
+}
 
 export default class CubeRenderer extends Renderer {
-
     /**
      * @param {GPUDevice} device 
      * */
     constructor(device, context) {
         super();
 
-        const vertex_buffer = device.createBuffer({
-            label: "Vertex buffer",
-            size: VERTICES.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-        const index_buffer = device.createBuffer({
-            label: "Index buffer",
-            size: INDICES.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-        device.queue.writeBuffer(vertex_buffer, 0, VERTICES);
-        device.queue.writeBuffer(index_buffer, 0, INDICES);
+        this.settings = {
+            fov: 60 * Math.PI / 180,
+            near_plane: 1.0,
+            far_plane: 1000.0,
+        };
 
-        const shader_module = device.createShaderModule({
+        this.device = device;
+        this.context = context;
+
+        this.resources = new GPUResources("Cube buffer", device);
+        this.vertex_buffer = this.resources.create_buffer('vertices', VERTICES, GPUBufferUsage.STORAGE);
+        this.index_buffer = this.resources.create_buffer('indices', INDICES, GPUBufferUsage.STORAGE);
+        this.view_matrix_uniform = this.resources.create_buffer('view matrix', mat4.create(), GPUBufferUsage.UNIFORM);
+
+        this.pipeline = this.create_pipeline();
+        this.bind_group = this.create_bind_group();
+
+        const update_view = () => {
+            this.update_view_matrix();
+            this.update_render_pass_descriptor();
+        };
+        document.addEventListener('canvas_resize', update_view);
+        update_view();
+
+        let rotation = 0;
+        this.render_callback = () => {
+            if (!this.is_rendering) return;
+
+            rotation += 0.003;
+            const model_matrix = mat4.create();
+            mat4.rotateY(model_matrix, model_matrix, rotation);
+            mat4.rotateX(model_matrix, model_matrix, rotation);
+
+            const view_matrix_after = mat4.create();
+            mat4.multiply(view_matrix_after, this.view_matrix, model_matrix);
+            device.queue.writeBuffer(this.view_matrix_uniform, 0, view_matrix_after);
+
+            this.render_pass_descriptor.colorAttachments[0].view =
+                context.getCurrentTexture().createView();
+
+            const command_encoder = device.createCommandEncoder({ label: "Cube command encoder" });
+            const render_pass = command_encoder.beginRenderPass(this.render_pass_descriptor);
+            render_pass.setBindGroup(0, this.bind_group);
+            render_pass.setPipeline(this.pipeline);
+            render_pass.draw(3, INDICES.length / 3);
+            render_pass.end();
+
+            device.queue.submit([command_encoder.finish()]);
+            requestAnimationFrame(this.render_callback);
+        };
+    }
+
+    create_pipeline() {
+        const shader_module = this.device.createShaderModule({
             label: "Cube shader",
             code: shader
         });
 
-        const pipeline = device.createRenderPipeline({
+        return this.device.createRenderPipeline({
             label: "Cube render pipeline",
             layout: 'auto',
             vertex: {
@@ -121,110 +179,62 @@ export default class CubeRenderer extends Renderer {
                 depthCompare: 'less',
             }
         });
+    }
 
-        let view_matrix = mat4.create();
-        let depth_texture = null;
-        let render_pass_descriptor
-
-        const view_matrix_uniform = device.createBuffer({
-            label: "View matrix uniform",
-            size: view_matrix.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-
-        const update_view = () => {
-            console.log(canvas.width, canvas.height);
-
-            const settings = {
-                fov: 60 * Math.PI / 180,
-                aspect_ratio: canvas.width / canvas.height,
-                near_plane: 1.0,
-                far_plane: 1000.0,
-            }
-
-            const proj_matrix = mat4.create(); // Create an empty matrix first
-            mat4.perspective(
-                proj_matrix,
-                settings.fov,
-                settings.aspect_ratio,
-                settings.near_plane,
-                settings.far_plane
-            );
-            mat4.lookAt(view_matrix, [0, 0, -10], [0, 0, 0], [0, 1, 0]);
-            mat4.multiply(view_matrix, proj_matrix, view_matrix);
-            device.queue.writeBuffer(view_matrix_uniform, 0, view_matrix);
-
-            depth_texture = device.createTexture({
-                size: {
-                    width: canvas.width,
-                    height: canvas.height,
-                    depthOrArrayLayers: 1
-                },
-                format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
-            });
-
-            render_pass_descriptor = {
-                label: "Circles pass encoder",
-                colorAttachments: [
-                    {
-                        clearValue: [1, 1, 1, 1.0],
-                        loadOp: "clear",
-                        storeOp: "store",
-                        view: context.getCurrentTexture().createView(),
-                    },
-                ],
-                depthStencilAttachment: {
-                    view: depth_texture.createView(),
-                    depthClearValue: 1.0,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store',
-                }
-            };
-
-        };
-        document.addEventListener('canvas_resize', update_view);
-        update_view();
-
-        const bind_group = device.createBindGroup({
+    create_bind_group() {
+        return this.device.createBindGroup({
             label: "Cube bind group",
-            layout: pipeline.getBindGroupLayout(0),
+            layout: this.pipeline.getBindGroupLayout(0),
             entries: [
-                { binding: 0, resource: { buffer: view_matrix_uniform } },
-                { binding: 1, resource: { buffer: vertex_buffer } },
-                { binding: 2, resource: { buffer: index_buffer } },
+                { binding: 0, resource: { buffer: this.view_matrix_uniform } },
+                { binding: 1, resource: { buffer: this.vertex_buffer } },
+                { binding: 2, resource: { buffer: this.index_buffer } },
             ]
         });
+    }
 
-        let rotation = 0;
-        this.render_callback = () => {
-            if (!this.is_rendering) return;
-            rotation += 0.005;
-            const model_matrix = mat4.create();
-            mat4.rotateY(model_matrix, model_matrix, rotation);
-            mat4.rotateX(model_matrix, model_matrix, rotation);
+    update_view_matrix() {
+        this.view_matrix = mat4.create();
+        const proj_matrix = mat4.create();
+        mat4.perspective(
+            proj_matrix,
+            this.settings.fov,
+            canvas.width / canvas.height,
+            this.settings.near_plane,
+            this.settings.far_plane
+        );
+        mat4.lookAt(this.view_matrix, [0, 0, -10], [0, 0, 0], [0, 1, 0]);
+        mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
+        this.device.queue.writeBuffer(this.view_matrix_uniform, 0, this.view_matrix);
+    }
 
-            const view_matrix_after = mat4.create();
-            mat4.multiply(view_matrix_after, view_matrix, model_matrix);
-            device.queue.writeBuffer(view_matrix_uniform, 0, view_matrix_after);
-
-            render_pass_descriptor.colorAttachments[0].view =
-                context.getCurrentTexture().createView();
-
-            const command_encoder = device.createCommandEncoder({ label: "Cube command encoder" });
-            const render_pass = command_encoder.beginRenderPass(render_pass_descriptor);
-            render_pass.setBindGroup(0, bind_group);
-            render_pass.setPipeline(pipeline);
-            render_pass.draw(3, INDICES.length / 3);
-            render_pass.end();
-
-            device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
+    update_render_pass_descriptor() {
+        this.depth_texture = this.device.createTexture({
+            size: {
+                width: canvas.width,
+                height: canvas.height,
+                depthOrArrayLayers: 1
+            },
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.render_pass_descriptor = {
+            label: "Circles pass encoder",
+            colorAttachments: [
+                {
+                    clearValue: [1, 1, 1, 1.0],
+                    loadOp: "clear",
+                    storeOp: "store",
+                    view: this.context.getCurrentTexture().createView(),
+                },
+            ],
+            depthStencilAttachment: {
+                view: this.depth_texture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            }
         };
-
-        if (!this.is_rendering) return;
-        requestAnimationFrame(this.render_callback);
-        document.addEventListener('surface_resize', listener)
     }
 
     render() {
