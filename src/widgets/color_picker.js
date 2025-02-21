@@ -123,7 +123,6 @@ export class ColorWidget extends Widget {
     }
 
     register() {
-
         // Custom event
         const color_change_event = new CustomEvent(this.event);
 

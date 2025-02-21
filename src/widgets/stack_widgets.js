@@ -29,16 +29,22 @@ export class StackedWidgets extends Widget {
 
     register() {
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", `<div id=${this.id} class='grid grid-cols-${this.columns} gap-${this.gap}'></div>`);
+        sidebar.insertAdjacentHTML(
+            "beforeend",
+            `
+            <div class="flex w-full justify-center">
+            <div class='grid grid-cols-${this.columns} gap-${this.gap} w-fit' id=${this.id}></div>
+            </div>`
+        );
         const stack_widget = document.getElementById(this.id);
         for (const widget of this.widgets) {
             stack_widget.appendChild(document.getElementById(widget.id));
         }
     }
 
-    add(widget) {
+    add(name, widget) {
         this.widgets.push(widget);
-        this[widget.label.toLowerCase()] = widget;
+        this[name] = widget;
         const stack_widget = document.getElementById(this.id);
         stack_widget.appendChild(document.getElementById(widget.id));
     }

@@ -1,6 +1,4 @@
-import { mat4 } from "gl-matrix";
-import Renderer from "./renderer.js";
-
+import { mat3, mat4, vec3 } from "gl-matrix"; import Renderer from "./renderer.js";
 const shader = `
 struct Canvas {
     width: f32,
@@ -100,14 +98,18 @@ export default class CubeRenderer extends Renderer {
     /**
      * @param {GPUDevice} device 
      * */
-    constructor(device, context) {
+    constructor(device, context, gui) {
         super();
+
+        this.gui = gui;
 
         this.settings = {
             fov: 60 * Math.PI / 180,
             near_plane: 1.0,
             far_plane: 1000.0,
         };
+        this.eye = [0, 0, -10];
+        this.look_at = [0, 0, 0];
 
         this.device = device;
         this.context = context;
@@ -124,8 +126,17 @@ export default class CubeRenderer extends Renderer {
             this.update_view_matrix();
             this.update_render_pass_descriptor();
         };
-        document.addEventListener('canvas_resize', update_view);
         update_view();
+
+        const move_camera_eye = (key_label) => {
+            const key = key_label.toLowerCase();
+            const move_by = 0.5;
+            if (key === 'w') { this.eye[2] += move_by; }
+            else if (key === "s") { this.eye[2] -= move_by; }
+            else if (key === "d") { this.eye[0] += move_by; }
+            else if (key === "a") { this.eye[0] -= move_by; }
+            this.update_view_matrix();
+        };
 
         let rotation = 0;
         this.render_callback = () => {
@@ -153,6 +164,12 @@ export default class CubeRenderer extends Renderer {
             device.queue.submit([command_encoder.finish()]);
             requestAnimationFrame(this.render_callback);
         };
+
+        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
+        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
+        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
+        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+        document.addEventListener('canvas_resize', update_view);
     }
 
     create_pipeline() {
@@ -203,7 +220,10 @@ export default class CubeRenderer extends Renderer {
             this.settings.near_plane,
             this.settings.far_plane
         );
-        mat4.lookAt(this.view_matrix, [0, 0, -10], [0, 0, 0], [0, 1, 0]);
+
+        vec3.add(this.look_at, this.eye, [0, 0, 10]);
+
+        mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
         this.device.queue.writeBuffer(this.view_matrix_uniform, 0, this.view_matrix);
     }

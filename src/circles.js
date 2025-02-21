@@ -136,7 +136,6 @@ export class CirclesRenderer extends Renderer {
     }
 
     create_ball_render_pipeline() {
-        console.log('yo');
         const shader_module = (() => {
             const frag = this.gui.debug.get_value() ? SHADERS.circles_fs_debug : SHADERS.circles_fs;
             const vert = SHADERS.circles_vs;

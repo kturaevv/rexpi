@@ -6,7 +6,7 @@ export default class Widget {
         this.value = null;
         this.event = null;
         this.label = null;
-        this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white";
+        this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white select-none";
     }
 
     init() {

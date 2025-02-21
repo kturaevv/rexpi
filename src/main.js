@@ -11,6 +11,7 @@ import GUI from "./widgets/gui.js";
 import AppRegistry from "./widgets/registry.js";
 import { StackedWidgets } from "./widgets/stack_widgets.js";
 import CubeRenderer from "./cube.js";
+import { KeyWidget } from "./widgets/keyboard.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -69,9 +70,9 @@ async function main() {
     const [device, context] = await init();
 
     const render_opts = new StackedWidgets([], 3, 2);
-    render_opts.add(new ButtonWidget("Triangle", false));
-    render_opts.add(new ButtonWidget("Circles", false));
-    render_opts.add(new ButtonWidget("Cube", false));
+    render_opts.add('triangle', new ButtonWidget("Triangle", false));
+    render_opts.add('circles', new ButtonWidget("Circles", false));
+    render_opts.add('cube', new ButtonWidget("Cube", false));
 
     const circles = new GUI();
     circles.add('debug', new CheckboxWidget("Debug"));
@@ -80,16 +81,27 @@ async function main() {
     circles.add('bg_color', new ColorWidget("Background Color"));
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
 
+    const camera = new StackedWidgets([], 3, 1);
+    camera.add('-', new KeyWidget(''));
+    camera.add('w', new KeyWidget('W'));
+    camera.add('-', new KeyWidget(''));
+    camera.add('a', new KeyWidget('A'));
+    camera.add('s', new KeyWidget('S'));
+    camera.add('d', new KeyWidget('D'));
+
+    const cube = new GUI();
+    cube.add('camera', camera);
+
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);
-    const cube_render = new CubeRenderer(device, context);
+    const cube_render = new CubeRenderer(device, context, cube);
 
     const sections = new AppRegistry(device);
     sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
-    sections.register(document.getElementById(render_opts.cube.id), cube_render);
+    sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
 
-    document.getElementById(render_opts.circles.id).click();
+    document.getElementById(render_opts.cube.id).click();
 }
 
 await main();

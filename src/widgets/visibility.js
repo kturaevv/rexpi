@@ -5,28 +5,20 @@ export default class Visibility {
 
     toggle() {
         const element = document.getElementById(this.id);
-        if (element.classList.contains('visible')) {
-            element.classList.replace('visible', 'invisible');
-        } else {
-            element.classList.replace('invisible', 'visible');
-        }
+        element.classList.toggle('hidden')
     }
 
     on() {
         const element = document.getElementById(this.id);
-        if (element.classList.contains("invisible")) {
-            element.classList.replace('invisible', 'visible');
-        } else {
-            element.classList.add("visible");
+        if (element.classList.contains("hidden")) {
+            this.toggle();
         }
     }
 
     off() {
         const element = document.getElementById(this.id);
-        if (element.classList.contains("visible")) {
-            element.classList.replace('visible', 'invisible');
-        } else {
-            element.classList.add("invisible");
+        if (!element.classList.contains("hidden")) {
+            this.toggle();
         }
     }
 }
