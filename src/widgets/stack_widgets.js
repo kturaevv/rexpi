@@ -20,7 +20,7 @@ export class StackedWidgets extends Widget {
     }
 
     get_child_widgets() {
-        return this.widgets;
+        return [this, ...this.widgets];
     }
 
     get_value() {
@@ -33,7 +33,7 @@ export class StackedWidgets extends Widget {
             "beforeend",
             `
             <div class="flex w-full justify-center">
-            <div class='grid grid-cols-${this.columns} gap-${this.gap} w-fit' id=${this.id}></div>
+                <div class='grid grid-cols-${this.columns} gap-${this.gap} w-fit' id=${this.id}></div>
             </div>`
         );
         const stack_widget = document.getElementById(this.id);

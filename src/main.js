@@ -12,6 +12,7 @@ import AppRegistry from "./widgets/registry.js";
 import { StackedWidgets } from "./widgets/stack_widgets.js";
 import CubeRenderer from "./cube.js";
 import { KeyWidget } from "./widgets/keyboard.js";
+import PlaneRenderer from "./plane.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -69,10 +70,11 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const render_opts = new StackedWidgets([], 3, 2);
+    const render_opts = new StackedWidgets([], 4, 2);
     render_opts.add('triangle', new ButtonWidget("Triangle", false));
     render_opts.add('circles', new ButtonWidget("Circles", false));
     render_opts.add('cube', new ButtonWidget("Cube", false));
+    render_opts.add('plane', new ButtonWidget("Plane", false));
 
     const circles = new GUI();
     circles.add('debug', new CheckboxWidget("Debug"));
@@ -92,16 +94,21 @@ async function main() {
     const cube = new GUI();
     cube.add('camera', camera);
 
+    const plane_gui = new GUI();
+
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);
     const cube_render = new CubeRenderer(device, context, cube);
+    const plane_render = new PlaneRenderer(device, context);
+
 
     const sections = new AppRegistry(device);
     sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
     sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
+    sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
 
-    document.getElementById(render_opts.cube.id).click();
+    document.getElementById(render_opts.plane.id).click();
 }
 
 await main();
