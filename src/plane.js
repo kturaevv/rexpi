@@ -1,5 +1,31 @@
 import Renderer from "./renderer.js";
 
+
+class Buffers {
+    /**
+     * @param {GPUDevice} device
+     * @param {GPUCanvasContext} context
+     **/
+    constructor(device, base_label) {
+        this.device = device;
+        this.label = base_label;
+    }
+
+    /**
+     * @param {Float32Array} data
+     * */
+    create_buffer(data, usage, label = '') {
+        const buf = this.device.createBuffer({
+            label: this.label + ":" + label,
+            size: data.byteLength,
+            usage: usage | GPUBufferUsage.COPY_DST,
+        });
+        this.device.writeBuffer(buf, 0, data);
+        return buf;
+    }
+}
+
+
 export default class PlaneRenderer extends Renderer {
     /**
      * @param {GPUDevice} device

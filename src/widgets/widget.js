@@ -1,11 +1,13 @@
 import { assert, generate_short_id } from "../utils.js";
+import Visibility from "./visibility.js";
 
 export default class Widget {
     constructor() {
-        this.id = null;
+        this.id = generate_short_id();
         this.value = null;
         this.event = null;
         this.label = null;
+        this.visibility = new Visibility(this.id);
         this.border = "m-1 p-2 border rounded-lg shadow-sm bg-white select-none";
     }
 

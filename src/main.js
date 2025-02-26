@@ -13,6 +13,7 @@ import { StackedWidgets } from "./widgets/stack_widgets.js";
 import CubeRenderer from "./cube.js";
 import { KeyWidget } from "./widgets/keyboard.js";
 import PlaneRenderer from "./plane.js";
+import MouseWidget from "./widgets/mouse.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -95,12 +96,12 @@ async function main() {
     cube.add('camera', camera);
 
     const plane_gui = new GUI();
+    plane_gui.add('mouse', new MouseWidget());
 
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);
     const cube_render = new CubeRenderer(device, context, cube);
-    const plane_render = new PlaneRenderer(device, context);
-
+    const plane_render = new PlaneRenderer(device, context, plane_gui);
 
     const sections = new AppRegistry(device);
     sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);

@@ -1,3 +1,4 @@
+import { assert } from "../utils.js";
 import Widget from "./widget.js";
 
 export default class GUI {
@@ -9,7 +10,9 @@ export default class GUI {
      * @param {String} name
      * @param {Widget} widget
      * */
-    add(name = null, widget) {
+    add(name, widget) {
+        assert(name !== undefined, 'Widget [name] is undefined!', name);
+        assert(widget !== undefined, 'Widget [widget] is undefined!', widget);
         this[name] = widget;
         this.elements.push([name, widget]);
         widget.insert_border();
