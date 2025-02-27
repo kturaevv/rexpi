@@ -239,7 +239,7 @@ export default class CubeRenderer extends Renderer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         });
         this.render_pass_descriptor = {
-            label: "Circles pass encoder",
+            label: "Cube pass encoder",
             colorAttachments: [
                 {
                     clearValue: [1, 1, 1, 1.0],
