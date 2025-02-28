@@ -61,7 +61,7 @@ async function init() {
             height: canvas.height,
         },
         format: "rgba8unorm",
-        alphaMode: "premultiplied",
+        alphaMode: "opaque",
         colorSpace: "srgb",
     });
 

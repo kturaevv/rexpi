@@ -111,8 +111,7 @@ export class ColorWidget extends Widget {
         const rgbaColor = `rgba(${r}, ${g}, ${b}, ${a})`;
         color_preview.style.backgroundColor = rgbaColor;
 
-        // Make data available for instance
-        // bgra8unorm
+        // Make data bgra8unorm
         const colorArray = [
             parseInt(r) / 255,
             parseInt(g) / 255,
@@ -123,45 +122,33 @@ export class ColorWidget extends Widget {
     }
 
     register() {
-        // Custom event
         const color_change_event = new CustomEvent(this.event);
 
-        // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
         sidebar.insertAdjacentHTML("beforeend", this.get_color_picker_widget());
 
-        // Get all required elements
         const red_slider = document.getElementById(this.red_slider);
         const green_slider = document.getElementById(this.green_slider);
         const blue_slider = document.getElementById(this.blue_slider);
         const alpha_slider = document.getElementById(this.alpha_slider);
 
-        // Function to update color display
         const update_color = () => {
             const red = red_slider.value;
             const green = green_slider.value;
             const blue = blue_slider.value;
             const alpha = alpha_slider.value;
-
-            // Update value displays
             this.set_color(red, green, blue, alpha);
-
-            // Dispatch
             document.dispatchEvent(color_change_event);
         };
 
-        // Add event listeners to all sliders
         red_slider.addEventListener('input', update_color);
         green_slider.addEventListener('input', update_color);
         blue_slider.addEventListener('input', update_color);
         alpha_slider.addEventListener('input', update_color);
 
-
-        // Initialize color display
         update_color();
 
         return this;
     }
-
 }
 

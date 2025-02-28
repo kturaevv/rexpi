@@ -2,6 +2,7 @@ import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
 import GUI from "./widgets/gui.js";
 import SHADERS from "./shaders.js";
+import { vec3 } from "gl-matrix";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 
@@ -144,7 +145,6 @@ export class CirclesRenderer extends Renderer {
                 code: vert + frag,
             });
         })();
-
         this.render_bind_group_layout = this.device.createBindGroupLayout({
             label: "Bind group layout",
             entries: [
@@ -162,11 +162,10 @@ export class CirclesRenderer extends Renderer {
                 { binding: 0, resource: { buffer: this.viewport_buffer, } },
             ]
         });
-
         this.render_pipeline_layout = this.device.createPipelineLayout({
             bindGroupLayouts: [this.render_bind_group_layout],
         });
-        this.render_pipeline_descriptor = {
+        this.render_pipeline = this.device.createRenderPipeline({
             label: "Circles render pipeline",
             // We have only 1 vertex buffer which is ball data position buffer
             vertex: {
@@ -187,14 +186,25 @@ export class CirclesRenderer extends Renderer {
                 entrypoint: "fs_main",
                 targets: [{
                     // format: navigator.gpu.getPreferredCanvasFormat(),
-                    format: "rgba8unorm"
+                    format: "rgba8unorm",
+                    blend: {
+                        color: {
+                            srcFactor: "src-alpha",
+                            dstFactor: "one-minus-src-alpha",
+                            operation: "add",
+                        },
+                        alpha: {
+                            srcFactor: "one",
+                            dstFactor: "one-minus-src-alpha",
+                            operation: "add",
+                        }
+                    }
                 }],
             },
             primitive: { topology: "triangle-list" },
             layout: this.render_pipeline_layout,
             cullMode: "none"
-        };
-        this.render_pipeline = this.device.createRenderPipeline(this.render_pipeline_descriptor);
+        });
     }
 
     /** 
