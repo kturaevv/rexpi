@@ -13,7 +13,7 @@ import { StackedWidgets } from "./widgets/stack_widgets.js";
 import CubeRenderer from "./cube.js";
 import { KeyWidget } from "./widgets/keyboard.js";
 import PlaneRenderer from "./plane.js";
-import MouseWidget from "./widgets/mouse.js";
+import CursorWidget from "./widgets/cursor.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -81,7 +81,7 @@ async function main() {
     circles.add('debug', new CheckboxWidget("Debug"));
     circles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
     circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
-    circles.add('bg_color', new ColorWidget("Background Color"));
+    circles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
 
     const camera = new StackedWidgets([], 3, 1);
@@ -96,7 +96,7 @@ async function main() {
     cube.add('camera', camera);
 
     const plane_gui = new GUI();
-    plane_gui.add('mouse', new MouseWidget());
+    plane_gui.add('cursor', new CursorWidget());
 
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);

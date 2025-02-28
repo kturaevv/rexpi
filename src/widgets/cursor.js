@@ -1,6 +1,6 @@
 import Widget from "./widget.js";
 
-export default class MouseWidget extends Widget {
+export default class CursorWidget extends Widget {
     constructor(label = "Mouse") {
         super();
         this.event = this.id + label;
@@ -28,6 +28,7 @@ export default class MouseWidget extends Widget {
         const canvas = document.getElementById('canvas');
         const cursor = document.getElementById(this.id + '_cursor');
         const out = document.getElementById(this.id);
+        out.style.display = 'none';
 
         const get_mouse_pos = (canvas, evt) => {
             const rect = canvas.getBoundingClientRect();

@@ -1,5 +1,4 @@
-import { mat3, mat4, vec3 } from "gl-matrix";
-
+import { mat3, mat4, vec3, vec4 } from "gl-matrix";
 import Renderer from "./renderer.js";
 
 
@@ -44,18 +43,35 @@ export default class PlaneRenderer extends Renderer {
             code: `
 @group(0) @binding(0) var<uniform> view_matrix: mat4x4<f32>;
 
+const GRID_SIZE = 1.0;
+const V = array<vec4<f32>, 4>(
+    vec4(-1.0, 0.0,  1.0, 1.0),
+    vec4( 1.0, 0.0,  1.0, 1.0),
+    vec4(-1.0, 0.0, -1.0, 1.0),
+    vec4( 1.0, 0.0, -1.0, 1.0),
+);
+const INDICES = array<u32, 6>(
+    0, 1, 2,
+    2, 1, 3,
+);
+
+struct VertexOut {
+    @builtin(position) pos: vec4<f32>,
+    @location(0) coords: vec2<f32>,
+}
+
 @vertex
-fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4<f32> {
-    let V = array<vec4<f32>, 2>(
-        vec4<f32>(1.0, 0.0, 0.0, 1.0),
-        vec4<f32>(0.0, 1.0, 0.0, 1.0),
-    );
-    return view_matrix * V[vi];
+fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
+    var out: VertexOut;
+    let world_pos = V[INDICES[vi]] * GRID_SIZE;
+    out.pos = view_matrix * world_pos;
+    out.coords = world_pos.xz;
+    return out;
 };
 
 @fragment
-fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-    return vec4(0.5, 1.0, 1.0, 1.0);
+fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
+    return vec4((in.coords / GRID_SIZE) + 0.5, 0.0, 1.0);
 };
         `});
 
@@ -63,7 +79,8 @@ fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
             label: 'Plane',
             layout: 'auto',
             primitive: {
-                topology: 'line-strip'
+                topology: 'triangle-list',
+                cullMode: 'none',
             },
             vertex: {
                 module: shader,
@@ -72,8 +89,10 @@ fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
             fragment: {
                 module: shader,
                 entryPoint: 'fs_main',
-                targets: [{ format: "rgba8unorm" }],
-            }
+                targets: [{
+                    format: "rgba8unorm",
+                }],
+            },
         });
 
         this.bind_group = device.createBindGroup({
@@ -86,22 +105,20 @@ fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
 
         this.render_callback = () => {
             if (!this.is_rendering) return;
-
-            const pass_descr = {
+            const enc = device.createCommandEncoder();
+            const pass = enc.beginRenderPass({
                 colorAttachments: [
                     {
-                        clearValue: [0.2, 0.3, 0.4, 1.0],
+                        clearValue: [0.3, 0.3, 0.3, 1.0],
                         loadOp: "clear",
                         storeOp: "store",
                         view: this.context.getCurrentTexture().createView(),
-                    }
-                ]
-            };
-            const enc = device.createCommandEncoder();
-            const pass = enc.beginRenderPass(pass_descr)
+                    },
+                ],
+            });
             pass.setPipeline(this.pipeline);
             pass.setBindGroup(0, this.bind_group);
-            pass.draw(2);
+            pass.draw(6);
             pass.end();
             device.queue.submit([enc.finish()]);
             requestAnimationFrame(this.render_callback);
@@ -111,10 +128,10 @@ fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
     create_view_buffer() {
         this.settings = {
             fov: 60 * Math.PI / 180,
-            near_plane: 1.0,
+            near_plane: 0.1,
             far_plane: 1000.0,
         };
-        this.eye = [0, 0, -10];
+        this.eye = [0, 1, -3];
         this.look_at = [0, 0, 0];
         this.view_matrix = mat4.create();
         const proj_matrix = mat4.create();
@@ -125,7 +142,7 @@ fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
             this.settings.near_plane,
             this.settings.far_plane
         );
-        vec3.add(this.look_at, this.eye, [0, 0, 10]);
+        // vec3.add(this.look_at, this.eye, [0, 0, 10]);
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
         return this.buffers.create_buffer(this.view_matrix, GPUBufferUsage.UNIFORM, "View");

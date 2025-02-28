@@ -220,9 +220,7 @@ export default class CubeRenderer extends Renderer {
             this.settings.near_plane,
             this.settings.far_plane
         );
-
         vec3.add(this.look_at, this.eye, [0, 0, 10]);
-
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
         this.device.queue.writeBuffer(this.view_matrix_uniform, 0, this.view_matrix);
