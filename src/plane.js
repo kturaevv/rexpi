@@ -43,12 +43,21 @@ export default class PlaneRenderer extends Renderer {
             code: `
 @group(0) @binding(0) var<uniform> view_matrix: mat4x4<f32>;
 
-const GRID_SIZE = 1.0;
+const GRID_SIZE = 2.0;
+
+const CELL_SIZE = 1.0;
+const CELL_LINE_THICKNESS = 0.01;
+const CELL_COLOUR = vec4( 0.75, 0.75, 0.75, 0.5 );
+
+const SUBCELL_SIZE = 0.1;
+const SUBCELL_LINE_THICKNESS = 0.001;
+const SUBCELL_COLOUR = vec4( 0.5, 0.5, 0.5, 0.5 );
+
 const V = array<vec4<f32>, 4>(
-    vec4(-1.0, 0.0,  1.0, 1.0),
-    vec4( 1.0, 0.0,  1.0, 1.0),
-    vec4(-1.0, 0.0, -1.0, 1.0),
-    vec4( 1.0, 0.0, -1.0, 1.0),
+    vec4(-0.5, 0.0,  0.5, 1.0),
+    vec4( 0.5, 0.0,  0.5, 1.0),
+    vec4(-0.5, 0.0, -0.5, 1.0),
+    vec4( 0.5, 0.0, -0.5, 1.0),
 );
 const INDICES = array<u32, 6>(
     0, 1, 2,
@@ -65,16 +74,37 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
     var out: VertexOut;
     let world_pos = V[INDICES[vi]] * GRID_SIZE;
     out.pos = view_matrix * world_pos;
-    out.coords = world_pos.xz;
+    out.coords = world_pos.xz; // normalize coords [0, 1]
     return out;
 };
 
+fn modv(in: vec2<f32>, m: f32) -> vec2<f32> {
+    return in - m * floor(in / m);
+}
+
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    return vec4((in.coords / GRID_SIZE) + 0.5, 0.0, 1.0);
-};
-        `});
+    let cell_coords     = modv(in.coords + CELL_SIZE * 0.5, CELL_SIZE);
+    let subcell_coords  = modv(cell_coords + SUBCELL_SIZE * 0.5, SUBCELL_SIZE);
 
+    let distance_to_cell    = abs(cell_coords - CELL_SIZE * 0.5);
+    let distance_to_subcell = abs(subcell_coords - SUBCELL_SIZE * 0.5);
+
+    let dx = fwidth(in.coords.x);
+    let dy = fwidth(in.coords.y);
+
+    let big_line_x = CELL_LINE_THICKNESS * 0.5 + dx;
+    let big_line_y = CELL_LINE_THICKNESS * 0.5 + dy;
+    let smol_line_x = SUBCELL_LINE_THICKNESS * 0.5 + dx;
+    let smol_line_y = SUBCELL_LINE_THICKNESS * 0.5 + dy;
+
+    var color = vec4<f32>();
+    if (any(distance_to_subcell < vec2(smol_line_x, smol_line_y))) { color = SUBCELL_COLOUR;}
+    if (any(distance_to_cell    < vec2(big_line_x, big_line_y))) { color = CELL_COLOUR;}
+    return color;
+}
+        `
+        });
         this.pipeline = device.createRenderPipeline({
             label: 'Plane',
             layout: 'auto',
@@ -103,9 +133,15 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
             ]
         });
 
+
+        let rotation = 0.1;
         this.render_callback = () => {
             if (!this.is_rendering) return;
             const enc = device.createCommandEncoder();
+
+            mat4.rotateY(this.view_matrix, this.view_matrix, rotation * Math.PI / 180);
+            device.queue.writeBuffer(this.view_projection_buffer, 0, this.view_matrix);
+
             const pass = enc.beginRenderPass({
                 colorAttachments: [
                     {
@@ -131,7 +167,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
             near_plane: 0.1,
             far_plane: 1000.0,
         };
-        this.eye = [0, 1, -3];
+        this.eye = [0, 0.0, -1.2];
         this.look_at = [0, 0, 0];
         this.view_matrix = mat4.create();
         const proj_matrix = mat4.create();
@@ -145,6 +181,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
         // vec3.add(this.look_at, this.eye, [0, 0, 10]);
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
+        mat4.rotateX(this.view_matrix, this.view_matrix, -15 * Math.PI / 180);
+        // mat4.rotateY(this.view_matrix, this.view_matrix, 45 * Math.PI / 180);
         return this.buffers.create_buffer(this.view_matrix, GPUBufferUsage.UNIFORM, "View");
     }
 
