@@ -2,7 +2,6 @@ import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
 import GUI from "./widgets/gui.js";
 import SHADERS from "./shaders.js";
-import { vec3 } from "gl-matrix";
 
 export default function () { throw new Error("Unimplemented!!!"); }
 

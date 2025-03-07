@@ -2,51 +2,14 @@ import { mat3, mat4, vec3, vec4 } from "gl-matrix";
 import Renderer from "./renderer.js";
 
 
-class Buffers {
-    /**
-     * @param {GPUDevice} device
-     * @param {GPUCanvasContext} context
-     **/
-    constructor(device, base_label) {
-        this.device = device;
-        this.label = base_label;
-    }
-
-    /**
-     * @param {Float32Array} data
-     * */
-    create_buffer(data, usage, label = '') {
-        const buf = this.device.createBuffer({
-            label: this.label + ":" + label,
-            size: data.byteLength,
-            usage: usage | GPUBufferUsage.COPY_DST,
-        });
-        this.device.queue.writeBuffer(buf, 0, data);
-        return buf;
-    }
-}
-
-export default class PlaneRenderer extends Renderer {
-    /**
-     * @param {GPUDevice} device
-     * @param {GPUCanvasContext} context
-     **/
-    constructor(device, context) {
-        super();
-        this.device = device;
-        this.context = context;
-        this.buffers = new Buffers(device, 'Plane');
-
-        this.view_projection_buffer = this.create_view_buffer();
-
-        const shader = device.createShaderModule({
-            code: `
+const shader_code = `
 @group(0) @binding(0) var<uniform> view_matrix: mat4x4<f32>;
+@group(0) @binding(2) var<uniform> camera_position: vec3<f32>;
 
 const GRID_SIZE = 2.0;
 
 const CELL_SIZE = 1.0;
-const CELL_LINE_THICKNESS = 0.01;
+const CELL_LINE_THICKNESS = 0.005;
 const CELL_COLOUR = vec4( 0.75, 0.75, 0.75, 0.5 );
 
 const SUBCELL_SIZE = 0.1;
@@ -54,10 +17,10 @@ const SUBCELL_LINE_THICKNESS = 0.001;
 const SUBCELL_COLOUR = vec4( 0.5, 0.5, 0.5, 0.5 );
 
 const V = array<vec4<f32>, 4>(
-    vec4(-0.5, 0.0,  0.5, 1.0),
-    vec4( 0.5, 0.0,  0.5, 1.0),
-    vec4(-0.5, 0.0, -0.5, 1.0),
-    vec4( 0.5, 0.0, -0.5, 1.0),
+    vec4(-1000.0, 0.0,  1000.0, 1.0),
+    vec4( 1000.0, 0.0,  1000.0, 1.0),
+    vec4(-1000.0, 0.0, -1000.0, 1.0),
+    vec4( 1000.0, 0.0, -1000.0, 1.0),
 );
 const INDICES = array<u32, 6>(
     0, 1, 2,
@@ -101,10 +64,60 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     var color = vec4<f32>();
     if (any(distance_to_subcell < vec2(smol_line_x, smol_line_y))) { color = SUBCELL_COLOUR;}
     if (any(distance_to_cell    < vec2(big_line_x, big_line_y))) { color = CELL_COLOUR;}
-    return color;
+
+    let plane_distance = length(vec3(in.coords.x, 0.0, in.coords.y) - camera_position.xyz);
+    let opacity = smoothstep(1.0, 0.0, plane_distance / 25.0);
+    return color * opacity;
 }
-        `
+`
+class Buffers {
+    /**
+     * @param {GPUDevice} device
+     * @param {GPUCanvasContext} context
+     **/
+    constructor(device, base_label) {
+        this.device = device;
+        this.label = base_label;
+    }
+
+    /**
+     * @param {Float32Array} data
+     * */
+    create_buffer(data, usage, label = '') {
+        const buf = this.device.createBuffer({
+            label: this.label + ":" + label,
+            size: data.byteLength,
+            usage: usage | GPUBufferUsage.COPY_DST,
         });
+        this.device.queue.writeBuffer(buf, 0, data);
+        return buf;
+    }
+}
+
+export default class PlaneRenderer extends Renderer {
+    /**
+     * @param {GPUDevice} device
+     * @param {GPUCanvasContext} context
+     **/
+    constructor(device, context, gui) {
+        super();
+        this.gui = gui;
+        this.device = device;
+        this.context = context;
+        this.buffers = new Buffers(device, 'Plane');
+        this.settings = {
+            fov: 60 * Math.PI / 180,
+            near_plane: 0.0001,
+            far_plane: 1000.0,
+        };
+        this.eye = new Float32Array([0, 0.0, -1.2]);
+        this.look_at = [0, 0, 0];
+
+        this.view_projection_buffer = this.create_view_buffer();
+        this.camera_position_buffer = this.buffers.create_buffer(this.eye, GPUBufferUsage.UNIFORM);
+
+        const shader = device.createShaderModule({ code: shader_code });
+
         this.pipeline = device.createRenderPipeline({
             label: 'Plane',
             layout: 'auto',
@@ -121,6 +134,18 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
                 entryPoint: 'fs_main',
                 targets: [{
                     format: "rgba8unorm",
+                    blend: {
+                        color: {
+                            srcFactor: 'src-alpha',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                        alpha: {
+                            srcFactor: 'one',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                    }
                 }],
             },
         });
@@ -130,15 +155,14 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
             layout: this.pipeline.getBindGroupLayout(0),
             entries: [
                 { binding: 0, resource: { buffer: this.view_projection_buffer } },
+                { binding: 2, resource: { buffer: this.camera_position_buffer } },
             ]
         });
 
-
-        let rotation = 0.1;
+        let rotation = -0.01;
         this.render_callback = () => {
             if (!this.is_rendering) return;
             const enc = device.createCommandEncoder();
-
             mat4.rotateY(this.view_matrix, this.view_matrix, rotation * Math.PI / 180);
             device.queue.writeBuffer(this.view_projection_buffer, 0, this.view_matrix);
 
@@ -162,13 +186,6 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     }
 
     create_view_buffer() {
-        this.settings = {
-            fov: 60 * Math.PI / 180,
-            near_plane: 0.1,
-            far_plane: 1000.0,
-        };
-        this.eye = [0, 0.0, -1.2];
-        this.look_at = [0, 0, 0];
         this.view_matrix = mat4.create();
         const proj_matrix = mat4.create();
         mat4.perspective(
@@ -178,11 +195,10 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
             this.settings.near_plane,
             this.settings.far_plane
         );
-        // vec3.add(this.look_at, this.eye, [0, 0, 10]);
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
         mat4.rotateX(this.view_matrix, this.view_matrix, -15 * Math.PI / 180);
-        // mat4.rotateY(this.view_matrix, this.view_matrix, 45 * Math.PI / 180);
+        mat4.rotateY(this.view_matrix, this.view_matrix, -45 * Math.PI / 180);
         return this.buffers.create_buffer(this.view_matrix, GPUBufferUsage.UNIFORM, "View");
     }
 

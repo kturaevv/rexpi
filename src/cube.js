@@ -1,4 +1,6 @@
-import { mat3, mat4, vec3 } from "gl-matrix"; import Renderer from "./renderer.js";
+import { mat3, mat4, vec3 } from "gl-matrix";
+import Renderer from "./renderer.js";
+
 const shader = `
 struct Canvas {
     width: f32,
