@@ -97,6 +97,7 @@ async function main() {
 
     const plane_gui = new GUI();
     plane_gui.add('cursor', new CursorWidget());
+    plane_gui.add('camera', camera);
 
     const circles_renderer = new CirclesRenderer(device, context, circles);
     const triangle_render = new TriangleRenderer(device, context);

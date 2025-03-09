@@ -34,7 +34,7 @@ export class KeyWidget extends Widget {
     }
 
     register() {
-        const color_change_event = new CustomEvent(this.event);
+        const key_press_event = new CustomEvent(this.event);
 
         const sidebar = document.getElementById("sidebar");
         sidebar.insertAdjacentHTML("beforeend", this.html());
@@ -42,7 +42,7 @@ export class KeyWidget extends Widget {
         const press = (e) => {
             if (e.key.toLowerCase() === this.key.toLowerCase()) {
                 document.getElementById(this.key).classList.add('bg-neutral-300');
-                document.dispatchEvent(color_change_event);
+                document.dispatchEvent(key_press_event);
             }
         };
 

@@ -1,12 +1,18 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 
 const shader_code = `
 struct Settings { fov: f32, near: f32, far: f32, }
 
+struct Cursor {
+    curr: vec2<f32>,
+    is_dragging: u32,
+}
+
 @group(0) @binding(0) var<uniform> inverse_view_matrix: mat4x4<f32>;
 @group(0) @binding(1) var<uniform> camera_position: vec3<f32>;
-@group(0) @binding(2) var<uniform> settings: Settings;
+@group(0) @binding(2) var<uniform> cursor_position: Cursor;
+@group(0) @binding(3) var<uniform> settings: Settings;
 
 const V = array<vec4<f32>, 4>(
     vec4(-1.0,  1.0, 0.0, 1.0),
@@ -77,7 +83,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 
     let norm = max(settings.near, min(settings.far, length(camera_position - frag_coord))) / settings.far;
     let fade = 1 - min(1.0, 1 - pow(2, -10 * norm));
-    return color * fade;
+    color *= fade;
+
+    if (length(in.pos.xy - cursor_position.curr) <= 5) { color = vec4(1.0, 1.0, 1.0, 0.5); };
+    if (cursor_position.is_dragging != 0 && length(in.pos.xy - cursor_position.curr) <= 7) { color = vec4(1.0, 1.0, 1.0, 0.5); };
+
+    return color ;
 }
 `
 class Buffers {
@@ -137,13 +148,19 @@ export default class PlaneRenderer extends Renderer {
             }
         };
 
+        this.cursor = new Float32Array([0.0, 0.0, 0, 0]);
         this.eye = new Float32Array([0, 0.0, -5.0]);
         this.look_at = [0, 0, 0];
+        this.up = [0, 1, 0];
+
+        vec3.rotateX(this.eye, this.eye, this.look_at, 15 * Math.PI / 180);
+        vec3.rotateY(this.eye, this.eye, this.look_at, 45 * Math.PI / 180);
 
         this.create_view_projection();
         this.create_inverse_view_projection_buffer();
 
         this.camera_position_buffer = this.buffers.create_buffer(this.eye, GPUBufferUsage.UNIFORM);
+        this.cursor_position_buffer = this.buffers.create_buffer(this.cursor, GPUBufferUsage.UNIFORM);
         this.settings_buffer = this.buffers.create_buffer(this.settings.buffer_view(), GPUBufferUsage.UNIFORM);
 
         const shader = device.createShaderModule({ code: shader_code });
@@ -180,38 +197,9 @@ export default class PlaneRenderer extends Renderer {
             },
         });
 
-        const rotation = 0.1;
         this.render_callback = () => {
             if (!this.is_rendering) return;
             const enc = device.createCommandEncoder();
-
-            vec3.rotateY(this.eye, this.eye, this.look_at, rotation * Math.PI / 180);
-            vec3.rotateX(this.eye, this.eye, this.look_at, rotation * Math.PI / 180);
-            vec3.rotateZ(this.eye, this.eye, this.look_at, rotation * Math.PI / 180);
-
-            let move = 0.01;
-            this.eye[0] += move;
-            this.eye[1] += move;
-            this.eye[2] += move;
-
-            device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
-
-            this.view_matrix = mat4.create();
-            mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
-
-            this.proj_matrix = mat4.create();
-            mat4.perspective(
-                this.proj_matrix,
-                this.settings.fov,
-                canvas.width / canvas.height,
-                this.settings.near_plane,
-                this.settings.far_plane
-            );
-            mat4.multiply(this.view_proj_matrix, this.proj_matrix, this.view_matrix);
-
-            this.inv_vp_matrix = mat4.create();
-            mat4.invert(this.inv_vp_matrix, this.view_proj_matrix);
-            device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
 
             const pass = enc.beginRenderPass({
                 colorAttachments: [
@@ -230,6 +218,59 @@ export default class PlaneRenderer extends Renderer {
             device.queue.submit([enc.finish()]);
             requestAnimationFrame(this.render_callback);
         }
+
+        const move_camera_eye = (key_label) => {
+            const key = key_label.toLowerCase();
+            const move_by = 0.1;
+
+            const direction = vec3.create();
+            vec3.sub(direction, this.look_at, this.eye);
+            vec3.scale(direction, direction, move_by);
+
+            const move = (direction) => {
+                vec3.add(this.eye, this.eye, direction);
+                vec3.add(this.look_at, this.look_at, direction);
+            }
+
+            switch (key) {
+                case 'w': break;
+                case "s": vec3.negate(direction, direction); break;
+                case "d": vec3.cross(direction, direction, this.up); break;
+                case "a": vec3.cross(direction, this.up, direction); break;
+            }
+
+            move(direction);
+
+            this.create_view_projection();
+
+            device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
+            device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
+        };
+
+        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
+        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
+        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
+        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+
+        const cursor_event = (v) => {
+            this.cursor.set([v.curr.x, v.curr.y], 0);
+            // this.cursor.set([v.prev.x, v.prev.y], 2);
+            this.cursor.set([v.is_dragging ? 1 : 0], 2);
+            console.log(this.cursor);
+            device.queue.writeBuffer(this.cursor_position_buffer, 0, this.cursor)
+
+            if (v.is_dragging === true) {
+                const drag = vec3.create();
+                vec3.set(drag, v.curr.x - v.prev.x, v.curr.y - v.prev.y, 0);
+                vec3.scale(drag, drag, 0.01);
+                vec3.add(this.look_at, this.look_at, drag);
+
+                this.create_view_projection();
+                device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
+                device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
+            }
+        };
+        document.addEventListener(this.gui.cursor.event, () => cursor_event(this.gui.cursor.value));
     }
 
     create_inverse_view_projection_buffer() {
@@ -240,8 +281,6 @@ export default class PlaneRenderer extends Renderer {
 
     create_view_projection() {
         this.view_matrix = mat4.create();
-        vec3.rotateX(this.eye, this.eye, this.look_at, 15 * Math.PI / 180);
-        vec3.rotateY(this.eye, this.eye, this.look_at, 45 * Math.PI / 180);
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
 
         this.proj_matrix = mat4.create();
@@ -255,6 +294,9 @@ export default class PlaneRenderer extends Renderer {
 
         this.view_proj_matrix = mat4.create();
         mat4.multiply(this.view_proj_matrix, this.proj_matrix, this.view_matrix);
+
+        this.inv_vp_matrix = mat4.create();
+        mat4.invert(this.inv_vp_matrix, this.view_proj_matrix);
     }
 
     render() {

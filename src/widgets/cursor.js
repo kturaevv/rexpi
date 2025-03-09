@@ -4,7 +4,7 @@ export default class CursorWidget extends Widget {
     constructor(label = "Mouse") {
         super();
         this.event = this.id + label;
-        this.value = { x: null, y: null };
+        this.value = { curr: { x: null, y: null }, is_dragging: false, prev: { x: null, y: null } };
         this._tag = `
         <div 
             id="${this.id}" 
@@ -40,24 +40,43 @@ export default class CursorWidget extends Widget {
             };
         };
 
-        canvas.addEventListener('mousemove', function (e) {
-            this.value = get_mouse_pos(canvas, e);
+        const self = this;
+
+        canvas.addEventListener('mousemove', (e) => {
+            self.value.prev = { ...self.value.curr };
+            self.value.curr = get_mouse_pos(canvas, e);
             // out.textContent = `x: ${this.value.x}, y: ${this.value.y}`;
             // out.style.left = (e.clientX) + 'px';
             // out.style.top = (e.clientY - 45) + 'px';
             cursor.style.left = e.clientX + 'px';
             cursor.style.top = e.clientY + 'px';
-        });
-
-        canvas.addEventListener('click', function (e) {
             document.dispatchEvent(event);
         });
 
-        canvas.addEventListener('mouseout', function () {
+        canvas.addEventListener('click', (e) => {
+            document.dispatchEvent(event);
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            self.value.is_dragging = true;
+            document.dispatchEvent(event);
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            self.value.is_dragging = false;
+            document.dispatchEvent(event);
+        });
+
+        canvas.addEventListener('mouseout', () => {
+            self.value.is_dragging = false;
             cursor.classList.add('hidden');
         });
 
-        canvas.addEventListener('mouseover', function () {
+        canvas.addEventListener('mouseleave', () => {
+            self.value.is_dragging = false;
+        });
+
+        canvas.addEventListener('mouseover', () => {
             if (out.classList.contains('hidden')) return;
             cursor.classList.remove('hidden');
         });
