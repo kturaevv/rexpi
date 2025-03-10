@@ -2,7 +2,7 @@ import { mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 
 const shader_code = `
-struct Settings { fov: f32, near: f32, far: f32, }
+struct Settings { fov: f32, near: f32, far: f32, show_axis: u32}
 
 struct Cursor {
     curr: vec2<f32>,
@@ -50,7 +50,7 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
     return out;
 }
 
-fn make_grid(frag_coord: vec3<f32>, scale: f32, show_axis: bool) -> vec4<f32> {
+fn make_grid(frag_coord: vec3<f32>, scale: f32, show_axis: u32) -> vec4<f32> {
     let coord = frag_coord.xz * scale;
     let derivative = fwidth(coord);
 
@@ -62,7 +62,7 @@ fn make_grid(frag_coord: vec3<f32>, scale: f32, show_axis: bool) -> vec4<f32> {
     let minx = min(derivative.x, 1.0);
     let minz = min(derivative.y, 1.0);
 
-    if (show_axis == true) {
+    if (bool(show_axis)) {
         if (abs(frag_coord.x) < 0.1 * minx) { color.x = 1.0; color.w = 0.4; }
         if (abs(frag_coord.z) < 0.1 * minz) { color.z = 1.0; color.w = 0.4; }
     }
@@ -75,8 +75,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let t = -in.near_point.y / (in.far_point.y - in.near_point.y);
     let frag_coord = (in.near_point + t * (in.far_point - in.near_point));
 
-    let big_grid  = make_grid(frag_coord, 1.0, true);
-    let smol_grid = make_grid(frag_coord, 5.0, true);
+    let big_grid  = make_grid(frag_coord, 1.0, settings.show_axis);
+    let smol_grid = make_grid(frag_coord, 5.0, settings.show_axis);
 
     var color = vec4(0.0, 0.0, 0.0, 1.0);
     color = (big_grid + smol_grid) * f32(t > 0);
@@ -144,8 +144,9 @@ export default class PlaneRenderer extends Renderer {
             fov: 60 * Math.PI / 180,
             near_plane: 0.01,
             far_plane: 100.0,
+            show_axis: this.gui.show_axis.value,
             buffer_view: function () {
-                return new Float32Array([this.fov, this.near_plane, this.far_plane]);
+                return new Float32Array([this.fov, this.near_plane, this.far_plane, this.show_axis]);
             }
         };
 
@@ -268,16 +269,8 @@ export default class PlaneRenderer extends Renderer {
 
             move(direction);
 
-            this.create_view_projection();
-
-            device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
-            device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
+            this.update_view_buffers();
         };
-
-        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
-        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
-        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
-        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
 
         const handle_drag = (v) => {
             this.cursor.set([v.curr.x, v.curr.y], 0);
@@ -295,13 +288,24 @@ export default class PlaneRenderer extends Renderer {
                 vec3.rotateX(direction, direction, origin, orbit_y);
                 vec3.add(this.eye, this.look_at, direction);
 
-                this.create_view_projection();
-
-                device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
-                device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
+                this.update_view_buffers();
             }
         };
+
+        const update_settings = () => {
+            this.settings.show_axis ^= true;
+            console.log(this.settings);
+            device.queue.writeBuffer(this.settings_buffer, 0, this.settings.buffer_view());
+        };
+
+        document.addEventListener('canvas_resize', () => this.update_view_buffers());
+        document.addEventListener(this.gui.show_axis.event, () => update_settings());
         document.addEventListener(this.gui.cursor.event, () => handle_drag(this.gui.cursor.value));
+        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
+        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
+        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
+        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+
     }
 
     create_inverse_view_projection_buffer() {
@@ -328,6 +332,12 @@ export default class PlaneRenderer extends Renderer {
 
         this.inv_vp_matrix = mat4.create();
         mat4.invert(this.inv_vp_matrix, this.view_proj_matrix);
+    }
+
+    update_view_buffers() {
+        this.create_view_projection();
+        this.device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
+        this.device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
     }
 
     render() {

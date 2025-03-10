@@ -84,6 +84,8 @@ async function main() {
     circles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
 
+    const show_axis = new CheckboxWidget("Show axis", true);
+
     const camera = new StackedWidgets([], 3, 1);
     camera.add('-', new KeyWidget(''));
     camera.add('w', new KeyWidget('W'));
@@ -97,6 +99,7 @@ async function main() {
 
     const plane_gui = new GUI();
     plane_gui.add('cursor', new CursorWidget());
+    plane_gui.add('show_axis', show_axis);
     plane_gui.add('camera', camera);
 
     const circles_renderer = new CirclesRenderer(device, context, circles);

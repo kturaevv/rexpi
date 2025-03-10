@@ -5,17 +5,17 @@ import Widget from "./widget.js";
 var CHECKBOX_WIDGET_COUNT = 0;
 
 export class CheckboxWidget extends Widget {
-    constructor(label = "Checkbox Widget") {
+    constructor(label = "Checkbox Widget", default_val = false) {
         super();
 
         CHECKBOX_WIDGET_COUNT += 1;
 
         this.id = generate_short_id() + `_${CHECKBOX_WIDGET_COUNT}`;
 
-        this.value = false;
+        this.value = default_val;
         this.label = label;
         this.event = label + `${this.id}`;
-        this.input_tag = this.event;
+        this.input_tag = 'input_tag' + this.id;
         this.visibility = new Visibility(this.id);
 
         this.register();
@@ -27,7 +27,6 @@ export class CheckboxWidget extends Widget {
                 <label class="text-gray-700 text-nowrap font-bold">${this.label}</label>
                 <input
                     type="checkbox"
-                    value="false"
                     class="w-4 h-4 rounded-lg border-gray-300 text-blue-500"
                     id=${this.input_tag}
                 />
@@ -37,18 +36,17 @@ export class CheckboxWidget extends Widget {
 
     register() {
         const checkbox_change_event = new CustomEvent(this.event);
-
-        // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
+
         sidebar.insertAdjacentHTML("beforeend", this.get_checkbox_widget());
 
-        // Get all required elements
         const checkbox = document.getElementById(this.input_tag);
 
         checkbox.addEventListener("change", async (event) => {
             this.value = event.target.checked;
             document.dispatchEvent(checkbox_change_event);
         });
+        checkbox.checked = this.value;
 
         return this;
     }
