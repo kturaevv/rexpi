@@ -86,7 +86,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     color *= fade;
 
     if (length(in.pos.xy - cursor_position.curr) <= 5) { color = vec4(1.0, 1.0, 1.0, 0.5); };
-    if (cursor_position.is_dragging != 0 && length(in.pos.xy - cursor_position.curr) <= 7) { color = vec4(1.0, 1.0, 1.0, 0.5); };
+    if (length(in.pos.xy - cursor_position.curr) <= 7 && cursor_position.is_dragging != 0) { color = vec4(1.0, 1.0, 1.0, 0.5); };
 
     return color ;
 }
@@ -150,8 +150,8 @@ export default class PlaneRenderer extends Renderer {
 
         this.cursor = new Float32Array([0.0, 0.0, 0, 0]);
         this.eye = new Float32Array([0, 0.0, -5.0]);
-        this.look_at = [0, 0, 0];
-        this.up = [0, 1, 0];
+        this.look_at = vec3.fromValues(0, 0, 0);
+        this.up = vec3.fromValues(0, 1, 0);
 
         vec3.rotateX(this.eye, this.eye, this.look_at, 15 * Math.PI / 180);
         vec3.rotateY(this.eye, this.eye, this.look_at, 45 * Math.PI / 180);
@@ -252,25 +252,29 @@ export default class PlaneRenderer extends Renderer {
         document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
         document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
 
-        const cursor_event = (v) => {
+        const handle_drag = (v) => {
             this.cursor.set([v.curr.x, v.curr.y], 0);
-            // this.cursor.set([v.prev.x, v.prev.y], 2);
             this.cursor.set([v.is_dragging ? 1 : 0], 2);
-            console.log(this.cursor);
             device.queue.writeBuffer(this.cursor_position_buffer, 0, this.cursor)
 
             if (v.is_dragging === true) {
-                const drag = vec3.create();
-                vec3.set(drag, v.curr.x - v.prev.x, v.curr.y - v.prev.y, 0);
-                vec3.scale(drag, drag, 0.01);
-                vec3.add(this.look_at, this.look_at, drag);
+                const origin = [0, 0, 0];
+                const orbit_x = (v.curr.x - v.prev.x) * 0.005;
+                const orbit_y = (v.curr.y - v.prev.y) * 0.005;
+
+                const direction = vec3.create();
+                vec3.subtract(direction, this.eye, this.look_at);
+                vec3.rotateY(direction, direction, origin, -orbit_x);
+                vec3.rotateX(direction, direction, origin, orbit_y);
+                vec3.add(this.eye, this.look_at, direction);
 
                 this.create_view_projection();
+
                 device.queue.writeBuffer(this.camera_position_buffer, 0, this.eye);
                 device.queue.writeBuffer(this.inv_view_projection_buffer, 0, this.inv_vp_matrix);
             }
         };
-        document.addEventListener(this.gui.cursor.event, () => cursor_event(this.gui.cursor.value));
+        document.addEventListener(this.gui.cursor.event, () => handle_drag(this.gui.cursor.value));
     }
 
     create_inverse_view_projection_buffer() {
