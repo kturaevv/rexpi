@@ -63,8 +63,8 @@ fn make_grid(frag_coord: vec3<f32>, scale: f32, show_axis: bool) -> vec4<f32> {
     let minz = min(derivative.y, 1.0);
 
     if (show_axis == true) {
-        if (abs(frag_coord.x) < 0.1 * minx) { color.x = 1.0; color.w = 0.5; }
-        if (abs(frag_coord.z) < 0.1 * minz) { color.z = 1.0; color.w = 0.5; }
+        if (abs(frag_coord.x) < 0.1 * minx) { color.x = 1.0; color.w = 0.4; }
+        if (abs(frag_coord.z) < 0.1 * minz) { color.z = 1.0; color.w = 0.4; }
     }
 
     return color;
@@ -85,6 +85,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let fade = 1 - min(1.0, 1 - pow(2, -10 * norm));
     color *= fade;
 
+    // Color cursor
     if (length(in.pos.xy - cursor_position.curr) <= 5) { color = vec4(1.0, 1.0, 1.0, 0.5); };
     if (length(in.pos.xy - cursor_position.curr) <= 7 && cursor_position.is_dragging != 0) { color = vec4(1.0, 1.0, 1.0, 0.5); };
 
@@ -165,9 +166,14 @@ export default class PlaneRenderer extends Renderer {
 
         const shader = device.createShaderModule({ code: shader_code });
 
+        this.MULTISAMPLE_COUNT = 4;
+
         this.pipeline = device.createRenderPipeline({
             label: 'Plane',
             layout: 'auto',
+            multisample: {
+                count: this.MULTISAMPLE_COUNT,
+            },
             primitive: {
                 topology: 'triangle-list',
                 cullMode: 'none',
@@ -197,9 +203,29 @@ export default class PlaneRenderer extends Renderer {
             },
         });
 
+        let /** @type {GPUTexture} */ multisampling_texture;
+
         this.render_callback = () => {
             if (!this.is_rendering) return;
             const enc = device.createCommandEncoder();
+            const canvas_texture = this.context.getCurrentTexture();
+
+            if (!multisampling_texture ||
+                multisampling_texture.width / 2 != canvas_texture.width ||
+                multisampling_texture.height / 2 != canvas_texture.height) {
+
+                if (multisampling_texture) {
+                    multisampling_texture.destroy();
+                }
+
+                multisampling_texture = device.createTexture({
+                    label: "MSAA texture",
+                    size: [canvas_texture.width, canvas_texture.height],
+                    format: canvas_texture.format,
+                    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+                    sampleCount: this.MULTISAMPLE_COUNT,
+                });
+            }
 
             const pass = enc.beginRenderPass({
                 colorAttachments: [
@@ -207,7 +233,8 @@ export default class PlaneRenderer extends Renderer {
                         clearValue: [0.0, 0.0, 0.0, 1.0],
                         loadOp: "clear",
                         storeOp: "store",
-                        view: this.context.getCurrentTexture().createView(),
+                        view: multisampling_texture.createView(),
+                        resolveTarget: canvas_texture.createView(),
                     },
                 ],
             });
@@ -221,7 +248,7 @@ export default class PlaneRenderer extends Renderer {
 
         const move_camera_eye = (key_label) => {
             const key = key_label.toLowerCase();
-            const move_by = 0.1;
+            const move_by = 0.01;
 
             const direction = vec3.create();
             vec3.sub(direction, this.look_at, this.eye);
