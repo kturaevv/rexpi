@@ -1,0 +1,17 @@
+{
+  "name": "rexpi",
+  "private": true,
+"scripts": {
+    "dev": "bun run --watch --hot serve.js",
+    },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@webgpu/types": "^0.1.51"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

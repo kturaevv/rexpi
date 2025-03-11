@@ -1,0 +1,3 @@
+[install]
+# For Bun to install packages compatible project
+exact = true

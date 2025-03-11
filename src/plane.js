@@ -294,7 +294,6 @@ export default class PlaneRenderer extends Renderer {
 
         const update_settings = () => {
             this.settings.show_axis ^= true;
-            console.log(this.settings);
             device.queue.writeBuffer(this.settings_buffer, 0, this.settings.buffer_view());
         };
 

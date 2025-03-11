@@ -3,7 +3,7 @@
 pkgs.mkShell {
   buildInputs = with pkgs; [
     fzf # find * -type f | fzf > selected
-    deno
+    bun 
   ];
 
   shellHook = ''
