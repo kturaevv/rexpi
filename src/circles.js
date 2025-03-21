@@ -39,13 +39,22 @@ export class CirclesRenderer extends Renderer {
 
         const get_viewport = () => new Float32Array([...gui.color.get_value(), canvas.width, canvas.height, 0.0, 0.0]);
 
+
         this.gui = gui;
         this.device = device;
         this.context = context;
         this.viewport_buffer = create_buffer(device, 'Viewport uniform', GPUBufferUsage.UNIFORM, get_viewport());
 
+        this.cursor = new Float32Array([0, 0, 0, 0]);
+        this.cursor_buffer = create_buffer(device, 'Cursor uniform', GPUBufferUsage.UNIFORM, this.cursor);
+
         const set_viewport = () => {
             device.queue.writeBuffer(this.viewport_buffer, 0, get_viewport());
+        };
+
+        const set_cursor = (v) => {
+            this.cursor = new Float32Array([v.curr.x, v.curr.y, v.is_dragging ? 1 : 0])
+            device.queue.writeBuffer(this.cursor_buffer, 0, this.cursor);
         };
 
         const init = () => {
@@ -58,7 +67,10 @@ export class CirclesRenderer extends Renderer {
         document.addEventListener(gui.color.event, set_viewport);
         document.addEventListener(gui.debug.event, () => this.create_ball_render_pipeline());
         document.addEventListener(gui.amount.event, init);
+        document.addEventListener(gui.refresh.event, init);
         document.addEventListener(gui.size.event, init);
+        document.addEventListener(gui.cursor.event, () => set_cursor(this.gui.cursor.value));
+
         init();
 
         this.render_callback = () => {
@@ -151,7 +163,12 @@ export class CirclesRenderer extends Renderer {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" },
-                }
+                },
+                { // Bind group layout entry
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" },
+                },
             ]
         });
         this.render_bind_group = this.device.createBindGroup({
@@ -159,6 +176,7 @@ export class CirclesRenderer extends Renderer {
             layout: this.render_bind_group_layout,
             entries: [
                 { binding: 0, resource: { buffer: this.viewport_buffer, } },
+                { binding: 1, resource: { buffer: this.cursor_buffer, } },
             ]
         });
         this.render_pipeline_layout = this.device.createPipelineLayout({

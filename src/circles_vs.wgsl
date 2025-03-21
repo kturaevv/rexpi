@@ -8,7 +8,14 @@ struct Config {
     color: vec4<f32>,
     viewport_size: vec2<f32>,
 }
+
+struct Cursor {
+    pos: vec2<f32>,
+    is_dragging: u32,
+}
+
 @group(0) @binding(0) var<uniform> config: Config;
+@group(0) @binding(1) var<uniform> cursor_position: Cursor;
 
 fn get_aspect() -> f32 {
     return config.viewport_size.x / config.viewport_size.y;
