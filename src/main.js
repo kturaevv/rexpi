@@ -115,7 +115,7 @@ async function main() {
     sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
     sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
 
-    document.getElementById(render_opts.circles.id).click();
+    document.getElementById(render_opts.plane.id).click();
 }
 
 await main();

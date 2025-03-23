@@ -1,4 +1,4 @@
-import { mat4, vec3, vec2 } from "gl-matrix";
+import { quat, mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 
 const shader_code = `
@@ -278,15 +278,33 @@ export default class PlaneRenderer extends Renderer {
             device.queue.writeBuffer(this.cursor_position_buffer, 0, this.cursor)
 
             if (v.is_dragging === true) {
-                const origin = [0, 0, 0];
                 const orbit_x = (v.curr.x - v.prev.x) * 0.005;
                 const orbit_y = (v.curr.y - v.prev.y) * 0.005;
 
+                // Vertical rotation
+                vec3.rotateY(this.eye, this.eye, this.look_at, -orbit_x);
+
+                // Horizontal rotation
                 const direction = vec3.create();
-                vec3.subtract(direction, this.eye, this.look_at);
-                vec3.rotateY(direction, direction, origin, -orbit_x);
-                vec3.rotateX(direction, direction, origin, orbit_y);
-                vec3.add(this.eye, this.look_at, direction);
+                vec3.subtract(direction, this.look_at, this.eye);
+                vec3.normalize(direction, direction); // Normalize to avoid scaling issues
+
+                const right_axis = vec3.create();
+                vec3.cross(right_axis, [0, 1, 0], direction);
+                vec3.normalize(right_axis, right_axis); // Normalize right axis
+
+                // Prevent extreme angles that cause flipping
+                const angle = vec3.angle(direction, [0, 1, 0]);
+                const new_angle = (angle + orbit_y) / Math.PI * 180;
+                if (new_angle > 170 || new_angle < 10) {
+                    return;
+                }
+
+                const rotation = mat4.create();
+                mat4.fromRotation(rotation, orbit_y, right_axis);
+                vec3.subtract(this.eye, this.eye, this.look_at);
+                vec3.transformMat4(this.eye, this.eye, rotation);
+                vec3.add(this.eye, this.eye, this.look_at);
 
                 this.update_view_buffers();
             }
@@ -304,7 +322,6 @@ export default class PlaneRenderer extends Renderer {
         document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
         document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
         document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
-
     }
 
     create_inverse_view_projection_buffer() {
