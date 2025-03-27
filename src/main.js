@@ -14,6 +14,7 @@ import CubeRenderer from "./cube.js";
 import { KeyWidget } from "./widgets/keyboard.js";
 import PlaneRenderer from "./plane.js";
 import CursorWidget from "./widgets/cursor.js";
+import TextRenderer from "./text.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -71,11 +72,12 @@ async function init() {
 async function main() {
     const [device, context] = await init();
 
-    const render_opts = new StackedWidgets([], 4, 2);
+    const render_opts = new StackedWidgets([], 3, 2);
     render_opts.add('triangle', new ButtonWidget("Triangle", false));
     render_opts.add('circles', new ButtonWidget("Circles", false));
     render_opts.add('cube', new ButtonWidget("Cube", false));
     render_opts.add('plane', new ButtonWidget("Plane", false));
+    render_opts.add('text', new ButtonWidget("Text", false));
 
     const circles = new GUI();
     circles.add("refresh", new ButtonWidget("Refresh", false))
@@ -108,14 +110,16 @@ async function main() {
     const triangle_render = new TriangleRenderer(device, context);
     const cube_render = new CubeRenderer(device, context, cube);
     const plane_render = new PlaneRenderer(device, context, plane_gui);
+    const text_render = new TextRenderer(device, context);
 
     const sections = new AppRegistry(device);
     sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
     sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
     sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
+    sections.register(document.getElementById(render_opts.text.id), text_render);
 
-    document.getElementById(render_opts.plane.id).click();
+    document.getElementById(render_opts.text.id).click();
 }
 
 await main();
