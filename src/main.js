@@ -83,7 +83,7 @@ async function main() {
     circles.add("refresh", new ButtonWidget("Refresh", false))
     circles.add('debug', new CheckboxWidget("Debug"));
     circles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
-    circles.add('size', new SliderWidget("Size", 0.1, 0.001, 0.3, 0.001));
+    circles.add('size', new SliderWidget("Size", 0.01, 0.001, 0.3, 0.001));
     circles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
     circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
     circles.add('cursor', new CursorWidget());
@@ -119,7 +119,7 @@ async function main() {
     sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
     sections.register(document.getElementById(render_opts.text.id), text_render);
 
-    document.getElementById(render_opts.text.id).click();
+    document.getElementById(render_opts.circles.id).click();
 }
 
 await main();

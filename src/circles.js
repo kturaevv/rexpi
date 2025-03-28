@@ -39,7 +39,6 @@ export class CirclesRenderer extends Renderer {
 
         const get_viewport = () => new Float32Array([...gui.color.get_value(), canvas.width, canvas.height, 0.0, 0.0]);
 
-
         this.gui = gui;
         this.device = device;
         this.context = context;
@@ -135,10 +134,17 @@ export class CirclesRenderer extends Renderer {
         this.ball_radius = new Float32Array(amount);
 
         for (let i = 0; i < amount; i++) {
-            let offset = i * 4
-            this.ball_position.set([random(), random(), random(), 1.0], offset);
-            this.ball_velocity.set([random(), random(), random(), 1.0], offset);
-            this.ball_radius.set([this.gui.size.get_value()], i);
+            let offset = i * 4;
+            let radius = this.gui.size.get_value()
+
+            let rnd = () => {
+                let v = random();
+                return Math.abs(v) < 1.0 - radius ? v : 1.0 - radius;
+            }
+
+            this.ball_position.set([rnd(), rnd(), 0.0, 1.0], offset);
+            this.ball_velocity.set([rnd(), rnd(), 0.0, 1.0], offset);
+            this.ball_radius.set([radius], i);
         }
 
         const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
@@ -254,6 +260,12 @@ export class CirclesRenderer extends Renderer {
                     buffer: { type: "storage" },
 
                 },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+
+                },
             ]
         });
         this.compute_bind_group = this.device.createBindGroup({
@@ -262,7 +274,8 @@ export class CirclesRenderer extends Renderer {
             entries: [
                 { binding: 0, resource: { buffer: this.ball_position_buffer } },
                 { binding: 1, resource: { buffer: this.ball_velocity_buffer } },
-                { binding: 2, resource: { buffer: this.ball_radius_buffer } }
+                { binding: 2, resource: { buffer: this.ball_radius_buffer } },
+                { binding: 3, resource: { buffer: this.viewport_buffer } }
             ]
         });
 
