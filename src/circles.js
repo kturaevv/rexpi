@@ -116,6 +116,7 @@ export class CirclesRenderer extends Renderer {
             this.ball_radius = null;
             this.ball_position_buffer.destroy();
             this.ball_radius_buffer.destroy();
+            this.ball_acceleration_buffer.destroy();
             this.ball_velocity_buffer.destroy();
             this.viewport_buffer.destroy();
             this.compute_pipeline = null;
@@ -127,15 +128,16 @@ export class CirclesRenderer extends Renderer {
 
     create_ball_data() {
         const amount = this.gui.amount.get_value();
+        const radius = this.gui.size.get_value()
 
         // Prepare data
         this.ball_position = new Float32Array(amount * 4);
         this.ball_velocity = new Float32Array(amount * 4);
+        this.ball_acceleration = new Float32Array(amount * 4);
         this.ball_radius = new Float32Array(amount);
 
-        for (let i = 0; i < amount; i++) {
+        for (let i = 0; i < amount - 1; i++) {
             let offset = i * 4;
-            let radius = this.gui.size.get_value()
 
             let rnd = () => {
                 let v = random();
@@ -144,13 +146,23 @@ export class CirclesRenderer extends Renderer {
 
             this.ball_position.set([rnd(), rnd(), 0.0, 1.0], offset);
             this.ball_velocity.set([rnd(), rnd(), 0.0, 1.0], offset);
+            this.ball_acceleration.set([rnd(), rnd(), 0.0, 1.0], offset);
             this.ball_radius.set([radius], i);
         }
 
-        const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        // Center circle
+        let offset = (amount - 1) * 4;
+        this.ball_position.set([0.0, 0.0, 0.0, 1.0], offset);
+        this.ball_velocity.set([0.0, 0.0, 0.0, 1.0], offset);
+        this.ball_acceleration.set([0.0, 0.0, 0.0, 1.0], offset);
+        this.ball_radius.set([3 * radius], amount - 1);
+
+        const ball_usage = GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST;
+        const compute_only = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
         this.ball_position_buffer = create_buffer(this.device, '', ball_usage, this.ball_position);
         this.ball_velocity_buffer = create_buffer(this.device, '', ball_usage, this.ball_velocity);
         this.ball_radius_buffer = create_buffer(this.device, '', ball_usage, this.ball_radius);
+        this.ball_acceleration_buffer = create_buffer(this.device, '', compute_only, this.ball_acceleration);
     }
 
     create_ball_render_pipeline() {
@@ -170,7 +182,7 @@ export class CirclesRenderer extends Renderer {
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" },
                 },
-                { // Bind group layout entry
+                {
                     binding: 1,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" },
@@ -263,6 +275,12 @@ export class CirclesRenderer extends Renderer {
                 {
                     binding: 3,
                     visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" },
+
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
 
                 },
@@ -274,8 +292,9 @@ export class CirclesRenderer extends Renderer {
             entries: [
                 { binding: 0, resource: { buffer: this.ball_position_buffer } },
                 { binding: 1, resource: { buffer: this.ball_velocity_buffer } },
-                { binding: 2, resource: { buffer: this.ball_radius_buffer } },
-                { binding: 3, resource: { buffer: this.viewport_buffer } }
+                { binding: 2, resource: { buffer: this.ball_acceleration_buffer } },
+                { binding: 3, resource: { buffer: this.ball_radius_buffer } },
+                { binding: 4, resource: { buffer: this.viewport_buffer } }
             ]
         });
 
