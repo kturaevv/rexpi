@@ -12,10 +12,27 @@ struct Config {
 @group(0) @binding(4) var<uniform> config: Config;
 
 
+fn update_vverlet(
+    pos: ptr<storage, vec4<f32>, read_write>,
+    vel: ptr<storage, vec4<f32>, read_write>,
+    acc: ptr<storage, vec4<f32>, read_write>,
+    dt: f32
+) {
+    let origin = vec4(0f, 0f, 0f, 0f);
+    let direction = origin - *pos;
+
+    let new_acc = 9.81 * direction; // gravity
+    let new_pos = *pos + *vel * dt + *acc * dt * dt * 0.5;
+    let new_vel = *vel + (*acc + new_acc) * dt * 0.5;
+
+    *pos = new_pos;
+    *vel = new_vel;
+    *acc = new_acc;
+}
+
 @compute @workgroup_size(64)
 fn compute_main(@builtin(global_invocation_id) id: vec3<u32>) {
     if id.x >= arrayLength(&position) { return; }
-
     let dt = 0.0016;
     let ix = id.x;
     let r = radius[ix];
@@ -30,14 +47,5 @@ fn compute_main(@builtin(global_invocation_id) id: vec3<u32>) {
         if abs(pos.y) + r > boundary {vel.y = -vel.y;}
     }
 
-    let origin = vec4(0f, 0f, 0f, 0f);
-    let direction = origin - *pos;
-
-    let new_pos = *pos + *vel * dt + *acc * dt * dt * 0.5;
-    let new_acc = 9.81 * direction; // gravity
-    let new_vel = *vel + (*acc + new_acc) * dt * 0.5;
-
-    *pos = new_pos;
-    *vel = new_vel;
-    *acc = new_acc;
+    update_vverlet(pos, vel, acc, dt);
 }

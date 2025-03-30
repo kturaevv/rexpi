@@ -107,20 +107,23 @@ async function main() {
     plane_gui.add('show_axis', show_axis);
     plane_gui.add('camera', camera);
 
+    const text_gui = new GUI();
+    text_gui.add('bg', new ColorWidget('Background color', [252, 253, 249, 1.0]));
+
     const particles_renderer = new ParticlesRenderer(device, context, particles);
     const triangle_render = new TriangleRenderer(device, context);
     const cube_render = new CubeRenderer(device, context, cube);
     const plane_render = new PlaneRenderer(device, context, plane_gui);
-    const text_render = new TextRenderer(device, context);
+    const text_render = new TextRenderer(device, context, text_gui);
 
     const sections = new AppRegistry(device);
     sections.register(document.getElementById(render_opts.particles.id), particles_renderer, particles);
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
     sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
     sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
-    sections.register(document.getElementById(render_opts.text.id), text_render);
+    sections.register(document.getElementById(render_opts.text.id), text_render, text_gui);
 
-    document.getElementById(render_opts.particles.id).click();
+    document.getElementById(render_opts.text.id).click();
 }
 
 await main();

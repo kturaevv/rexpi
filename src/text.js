@@ -3,12 +3,18 @@ import Renderer from "./renderer.js";
 
 
 const shader_code = `
-// @group(0) @position(0) var<storage, read> text: array<u32>;
+// @group(0) @binding(0) var<storage, read> text: array<u32>;
+@group(0) @binding(0) var<uniform> bg_color: vec4<f32>;
 
-const TRIANGLE = array<vec4<f32>, 3>(
-    vec4<f32>(-0.5, -0.5, 0.0, 1.0),
-    vec4<f32>( 0.5, -0.5, 0.0, 1.0),
-    vec4<f32>(-0.0,  0.5, 0.0, 1.0),
+const QUAD = array<vec4<f32>, 4>(
+    vec4(-1.0,  1.0, 0.0, 1.0),
+    vec4( 1.0,  1.0, 0.0, 1.0),
+    vec4(-1.0, -1.0, 0.0, 1.0),
+    vec4( 1.0, -1.0, 0.0, 1.0),
+);
+const INDICES = array<u32, 6>(
+    0, 1, 2,
+    2, 1, 3,
 );
 
 struct VertexOut {
@@ -16,16 +22,19 @@ struct VertexOut {
     @location(0) col: vec4<f32>,
 }
 
+
 @vertex
-fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
+fn vs_main(
+    @builtin(vertex_index) vi: u32,
+) -> VertexOut {
     var out: VertexOut;
-    out.pos = TRIANGLE[vi];
+    out.pos = QUAD[INDICES[vi]];
     return out;
 }
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    return vec4<f32>(0, 0, 0, 0);
+    return bg_color;
 }
 `
 class Buffers {
@@ -75,7 +84,14 @@ export default class TextRenderer extends Renderer {
         this.gui = gui;
         this.device = device;
         this.context = context;
+
         this.buffers = new Buffers(device, 'Plane');
+        const get_bg_color = () => new Float32Array(this.gui.bg.value);
+        this.color_buf = this.buffers.create_buffer(get_bg_color(), GPUBufferUsage.UNIFORM);
+
+        document.addEventListener(this.gui.bg.event, () => {
+            this.device.queue.writeBuffer(this.color_buf, 0, get_bg_color());
+        });
 
         // const msg = new TextEncoder();
         // const msg_buf = msg.encode("This msg is rendered on GPU!");
@@ -115,7 +131,8 @@ export default class TextRenderer extends Renderer {
             });
 
             pass.setPipeline(this.pipeline);
-            pass.draw(3);
+            pass.setBindGroup(0, this.buffers.get_bind_group(this.pipeline));
+            pass.draw(6);
             pass.end();
 
             device.queue.submit([command_encoder.finish()]);
