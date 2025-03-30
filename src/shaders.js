@@ -1,8 +1,8 @@
 const shaderFiles = [
-    './circles_cs.wgsl',
-    './circles_fs.wgsl',
-    './circles_vs.wgsl',
-    './circles_fs_debug.wgsl',
+    './particles_cs.wgsl',
+    './particles_fs.wgsl',
+    './particles_vs.wgsl',
+    './particles_fs_debug.wgsl',
 ];
 
 let shaders = {};

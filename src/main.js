@@ -1,7 +1,7 @@
 /// <reference types="@webgpu/types" />
 import { assert } from "./utils.js";
 import { TriangleRenderer } from "./triangle.js";
-import { CirclesRenderer } from "./circles.js";
+import { ParticlesRenderer } from "./particles.js";
 import { ColorWidget } from "./widgets/color_picker.js";
 import { NumberWidget } from "./widgets/number.js";
 import { CheckboxWidget } from "./widgets/checkbox.js";
@@ -74,20 +74,20 @@ async function main() {
 
     const render_opts = new StackedWidgets([], 3, 2);
     render_opts.add('triangle', new ButtonWidget("Triangle", false));
-    render_opts.add('circles', new ButtonWidget("Circles", false));
+    render_opts.add('particles', new ButtonWidget("Particles", false));
     render_opts.add('cube', new ButtonWidget("Cube", false));
     render_opts.add('plane', new ButtonWidget("Plane", false));
     render_opts.add('text', new ButtonWidget("Text", false));
 
-    const circles = new GUI();
-    circles.add("refresh", new ButtonWidget("Refresh", false))
-    circles.add('debug', new CheckboxWidget("Debug"));
-    circles.add('bounds', new CheckboxWidget("Bounds"));
-    circles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
-    circles.add('size', new SliderWidget("Size", 0.01, 0.001, 0.3, 0.001));
-    circles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
-    circles.add('color', new ColorWidget("Circles Color", [183.0, 138.0, 84.0, 0.9]));
-    circles.add('cursor', new CursorWidget());
+    const particles = new GUI();
+    particles.add("refresh", new ButtonWidget("Refresh", false))
+    particles.add('debug', new CheckboxWidget("Debug"));
+    particles.add('bounds', new CheckboxWidget("Bounds"));
+    particles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
+    particles.add('size', new SliderWidget("Size", 0.01, 0.001, 0.3, 0.001));
+    particles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
+    particles.add('color', new ColorWidget("Particles Color", [183.0, 138.0, 84.0, 0.9]));
+    particles.add('cursor', new CursorWidget());
 
     const show_axis = new CheckboxWidget("Show axis", true);
 
@@ -107,20 +107,20 @@ async function main() {
     plane_gui.add('show_axis', show_axis);
     plane_gui.add('camera', camera);
 
-    const circles_renderer = new CirclesRenderer(device, context, circles);
+    const particles_renderer = new ParticlesRenderer(device, context, particles);
     const triangle_render = new TriangleRenderer(device, context);
     const cube_render = new CubeRenderer(device, context, cube);
     const plane_render = new PlaneRenderer(device, context, plane_gui);
     const text_render = new TextRenderer(device, context);
 
     const sections = new AppRegistry(device);
-    sections.register(document.getElementById(render_opts.circles.id), circles_renderer, circles);
+    sections.register(document.getElementById(render_opts.particles.id), particles_renderer, particles);
     sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
     sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
     sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
     sections.register(document.getElementById(render_opts.text.id), text_render);
 
-    document.getElementById(render_opts.circles.id).click();
+    document.getElementById(render_opts.particles.id).click();
 }
 
 await main();

@@ -20,7 +20,7 @@ function create_buffer(device, label, usage, data) {
     return buf;
 }
 
-export class CirclesRenderer extends Renderer {
+export class ParticlesRenderer extends Renderer {
 
     /** 
      * @param {GPUDevice} device
@@ -83,7 +83,7 @@ export class CirclesRenderer extends Renderer {
             if (!this.is_rendering) { return; }
 
             const render_pass_descriptor = {
-                label: "Circles pass encoder",
+                label: "Particles pass encoder",
                 colorAttachments: [
                     {
                         clearValue: gui.bg_color.get_value(),
@@ -97,7 +97,7 @@ export class CirclesRenderer extends Renderer {
             render_pass_descriptor.colorAttachments[0].view =
                 context.getCurrentTexture().createView();
 
-            const command_encoder = device.createCommandEncoder({ label: "Circles command encoder" });
+            const command_encoder = device.createCommandEncoder({ label: "Particles command encoder" });
 
             const compute_pass = command_encoder.beginComputePass();
             compute_pass.setPipeline(this.compute_pipeline);
@@ -175,8 +175,8 @@ export class CirclesRenderer extends Renderer {
     create_ball_render_pipeline() {
         const shader_module = (() => {
             return this.device.createShaderModule({
-                label: 'Circles shader',
-                code: SHADERS.circles_vs + SHADERS.circles_fs,
+                label: 'Particles shader',
+                code: SHADERS.particles_vs + SHADERS.particles_fs,
             });
         })();
         this.render_bind_group_layout = this.device.createBindGroupLayout({
@@ -206,7 +206,7 @@ export class CirclesRenderer extends Renderer {
             bindGroupLayouts: [this.render_bind_group_layout],
         });
         this.render_pipeline = this.device.createRenderPipeline({
-            label: "Circles render pipeline",
+            label: "Particles render pipeline",
             // We have only 1 vertex buffer which is ball data position buffer
             vertex: {
                 module: shader_module,
@@ -252,8 +252,8 @@ export class CirclesRenderer extends Renderer {
      * */
     create_ball_compute_pipeline() {
         const compute_shader_module = this.device.createShaderModule({
-            label: "Circles compute shader",
-            code: SHADERS.circles_cs,
+            label: "Particles compute shader",
+            code: SHADERS.particles_cs,
         });
 
         const compute_bind_group_layout = this.device.createBindGroupLayout({
