@@ -37,18 +37,24 @@ export class CirclesRenderer extends Renderer {
         assert(is_bool(data.debug), "Debug value should be a boolean", data.debug);
         assert(!Number.isNaN(data.size), "Size is not an Integer!", data.size);
 
-        const get_viewport = () => new Float32Array([...gui.color.get_value(), canvas.width, canvas.height, 0.0, 0.0]);
+        const set_config = () => new Float32Array([
+            ...gui.color.get_value(),
+            canvas.width, canvas.height,
+            this.gui.bounds.get_value(),
+            this.gui.debug.get_value(),
+        ]);
 
         this.gui = gui;
         this.device = device;
         this.context = context;
-        this.viewport_buffer = create_buffer(device, 'Viewport uniform', GPUBufferUsage.UNIFORM, get_viewport());
+        this.viewport_buffer = create_buffer(device, 'Viewport uniform', GPUBufferUsage.UNIFORM, set_config());
 
         this.cursor = new Float32Array([0, 0, 0, 0]);
         this.cursor_buffer = create_buffer(device, 'Cursor uniform', GPUBufferUsage.UNIFORM, this.cursor);
 
-        const set_viewport = () => {
-            device.queue.writeBuffer(this.viewport_buffer, 0, get_viewport());
+        const update_config = () => {
+            console.log(set_config());
+            device.queue.writeBuffer(this.viewport_buffer, 0, set_config());
         };
 
         const set_cursor = (v) => {
@@ -62,9 +68,10 @@ export class CirclesRenderer extends Renderer {
             this.create_ball_compute_pipeline();
         };
 
-        document.addEventListener('canvas_resize', set_viewport)
-        document.addEventListener(gui.color.event, set_viewport);
-        document.addEventListener(gui.debug.event, () => this.create_ball_render_pipeline());
+        document.addEventListener('canvas_resize', update_config)
+        document.addEventListener(gui.color.event, update_config);
+        document.addEventListener(gui.bounds.event, update_config);
+        document.addEventListener(gui.debug.event, update_config);
         document.addEventListener(gui.amount.event, init);
         document.addEventListener(gui.refresh.event, init);
         document.addEventListener(gui.size.event, init);
@@ -167,11 +174,9 @@ export class CirclesRenderer extends Renderer {
 
     create_ball_render_pipeline() {
         const shader_module = (() => {
-            const frag = this.gui.debug.get_value() ? SHADERS.circles_fs_debug : SHADERS.circles_fs;
-            const vert = SHADERS.circles_vs;
             return this.device.createShaderModule({
                 label: 'Circles shader',
-                code: vert + frag,
+                code: SHADERS.circles_vs + SHADERS.circles_fs,
             });
         })();
         this.render_bind_group_layout = this.device.createBindGroupLayout({

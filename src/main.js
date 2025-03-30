@@ -82,6 +82,7 @@ async function main() {
     const circles = new GUI();
     circles.add("refresh", new ButtonWidget("Refresh", false))
     circles.add('debug', new CheckboxWidget("Debug"));
+    circles.add('bounds', new CheckboxWidget("Bounds"));
     circles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
     circles.add('size', new SliderWidget("Size", 0.01, 0.001, 0.3, 0.001));
     circles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));

@@ -7,6 +7,8 @@ struct VertexOutput {
 struct Config {
     color: vec4<f32>,
     viewport_size: vec2<f32>,
+    bounds: u32,
+    debug: u32,
 }
 
 struct Cursor {

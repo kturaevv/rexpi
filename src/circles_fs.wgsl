@@ -19,6 +19,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let pixel_to_center_distance = distance(center, in.pixel_pos.xy);
     let scaled_radius = in.radius * config.viewport_size.y * 0.5;
 
+    if bool(config.debug) {
+        if pixel_to_center_distance <= 1 {
+            return vec4(0.0, 0.0, 0.0, 0.0);
+        }
+        if pixel_to_center_distance > in.radius * config.viewport_size.y * 0.5 {
+            return vec4(1.0, 0.0, 0.0, 1.0);
+        }
+    }
+
     if pixel_to_center_distance > scaled_radius {
         discard;
     }
@@ -28,7 +37,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     if distance(cursor_position.pos, center) <= scaled_radius && pixel_to_center_distance >= scaled_radius * 0.99 {
         return vec4(1.0, 0.0, 0.0, 1.0);
     }
-
 
     return color;
 }
