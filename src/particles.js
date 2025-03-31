@@ -53,7 +53,6 @@ export class ParticlesRenderer extends Renderer {
         this.cursor_buffer = create_buffer(device, 'Cursor uniform', GPUBufferUsage.UNIFORM, this.cursor);
 
         const update_config = () => {
-            console.log(set_config());
             device.queue.writeBuffer(this.viewport_buffer, 0, set_config());
         };
 
@@ -313,14 +312,4 @@ export class ParticlesRenderer extends Renderer {
             }
         });
     };
-
-    render() {
-        this.is_rendering = true;
-        requestAnimationFrame(this.render_callback);
-    };
-
-    terminate() {
-        this.is_rendering = false;
-        this.cleanup_callback();
-    }
 }

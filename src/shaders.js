@@ -2,7 +2,6 @@ const shaderFiles = [
     './particles_cs.wgsl',
     './particles_fs.wgsl',
     './particles_vs.wgsl',
-    './particles_fs_debug.wgsl',
 ];
 
 let shaders = {};

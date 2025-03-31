@@ -256,13 +256,4 @@ export default class CubeRenderer extends Renderer {
             }
         };
     }
-
-    render() {
-        this.is_rendering = true;
-        requestAnimationFrame(this.render_callback);
-    }
-
-    terminate() {
-        this.is_rendering = false;
-    }
 }

@@ -103,13 +103,4 @@ export class TriangleRenderer extends Renderer {
         this.pipeline = render_pipeline;
         return this;
     };
-
-    render() {
-        this.is_rendering = true;
-        requestAnimationFrame(this.render_callback);
-    };
-
-    terminate() {
-        this.is_rendering = false;
-    }
 }

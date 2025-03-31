@@ -1,6 +1,6 @@
-const port = 8000;
+const port = 3000;
 
-const server = Bun.serve({
+Bun.serve({
     port: port,
     async fetch(req) {
         const url = new URL(req.url);
@@ -15,10 +15,6 @@ const server = Bun.serve({
                 const exists = await file.exists();
                 if (!exists) {
                     file = Bun.file("src/" + filepath);
-                    // const srcExists = await file.exists();
-                    // if (!srcExists) {
-                    //     throw new Error("File not found");
-                    // }
                 }
             } catch (error) {
                 return new Response("Not Found", { status: 404 });

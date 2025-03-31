@@ -5,12 +5,16 @@ export default class Renderer {
         RENDERER_COUNT += 1;
         this.id = RENDERER_COUNT;
         this.is_rendering = false;
+        this.render_callback = () => { throw new Error("Render callback is not implemented!") };
     }
+
     render() {
-        throw new Error("render() must be implemented!");
+        this.is_rendering = true;
+        requestAnimationFrame(this.render_callback);
     }
+
     terminate() {
-        throw new Error("terminate() must be implemented!");
+        this.is_rendering = false;
     }
 }
 
