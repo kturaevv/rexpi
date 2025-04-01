@@ -1,5 +1,12 @@
-function ascii_bitmaps() {
-    const data = new Uint8Array([
+
+export default function make_ascii_sprite_sheet(from = 0, to = 256) {
+    const BITMAP_WIDTH = 8;
+    const BITMAP_HEIGHT = 5;
+
+    const SPRITE_WIDTH = 5;
+    const SPRITE_HEIGHT = 8;
+
+    const packed_bitmap = new Uint8Array([
         0x00, 0x00, 0x00, 0x00, 0x00,  // char. 0
         0x3E, 0x5B, 0x4F, 0x5B, 0x3E,  // char. 1
         0x3E, 0x6B, 0x4F, 0x6B, 0x3E,  // char. 2
@@ -259,34 +266,94 @@ function ascii_bitmaps() {
     ]);
 
 
-    function print(char_code) {
+    function bitmap_to_sprite_byte_as_row(char_code) {
+        // Treats byte as entire row
         const index = char_code * 5;
-        let output = `Character: ${String.fromCharCode(char_code)} (ASCII ${char_code})\n`;
-
-        for (let row = 0; row < 8; row++) {
-            let rowStr = '';
-            for (let col = 0; col < 6; col++) {
-                const bit = (data[index + col] & (1 << row)) ? '■' : '□';
-                rowStr += bit;
+        const texel = new Uint8Array(BITMAP_WIDTH * BITMAP_HEIGHT);
+        console.log('Bitmap:');
+        // iter. each byte
+        let i = 0;
+        for (let y = 0; y < BITMAP_HEIGHT; y++) {
+            const byte = packed_bitmap[index + y];
+            // iter. each bit
+            let bitmap_width_ix = BITMAP_WIDTH - 1;
+            for (let x = bitmap_width_ix; x > -1; x--) {
+                let bit_is_set = (byte >> x) & 1;
+                let pixel_value = bit_is_set ? 255 : 0;
+                texel[i++] = pixel_value;
             }
-            output += rowStr + '\n';
         }
-
-        return output;
+        return texel;
     }
 
-    function get_bitmap(char_code) {
-        const index = char_code * 8;
-        const bitmap = [];
-        for (let i = 0; i < 8; i++) {
-            bitmap.push(data[index + i]);
+    function bitmap_to_sprite_t_flipv(char_code) {
+        // Reads bitmap as mat -> T -> flip_v
+        const index = char_code * 5;
+        const texel = new Uint8Array(BITMAP_WIDTH * BITMAP_HEIGHT);
+        // iter. each byte
+        let i = 0;
+        let bw = BITMAP_WIDTH - 1;
+        // for (let x = bw; x > -1; x--) {
+        for (let x = 0; x < bw + 1; x++) {
+            // iter. each bit
+            for (let y = 0; y < BITMAP_HEIGHT; y++) {
+                const byte = packed_bitmap[index + y];
+                let bit_is_set = (byte >> x) & 1;
+                let pixel_value = bit_is_set ? 255 : 0;
+                texel[i++] = pixel_value;
+            }
         }
-        return bitmap;
+        return texel;
+    }
+
+    function read_strided(matrix, shape, stride) {
+        const [h, w] = shape;
+        const [yd, xd] = stride;
+        for (let y = 0; y < h; y++) {
+            let line = '';
+            for (let x = 0; x < w; x++) {
+                let rc = y * yd + x * xd;
+                let val = matrix[rc] === 255 ? 1 : 0;
+                line += val;
+            }
+            console.log(line);
+        }
+    }
+
+    function pp(matrix, width = SPRITE_WIDTH, height = SPRITE_HEIGHT) {
+        for (let y = 0; y < height; y++) {
+            let line = '';
+            for (let x = 0; x < width; x++) {
+                let rc = y * width + x;
+                let val = matrix[rc] === 255 ? 1 : 0;
+                line += val;
+            }
+            console.log(line);
+        }
+    }
+
+    function print(char_code) {
+        let output = `Character: ${String.fromCharCode(char_code)} (ASCII ${char_code})\n`;
+        // let texel = bitmap_to_texel_t_flipv(char_code);
+        let texel = bitmap_to_sprite_t_flipv(char_code);
+        console.log(output);
+        pp(texel, SPRITE_WIDTH, SPRITE_HEIGHT);
+    }
+
+    let sprite_size = SPRITE_WIDTH * SPRITE_HEIGHT;
+    let sprite_sheet = new Uint8Array((to - from) * sprite_size);
+    for (let i = from; i < to; i++) {
+        sprite_sheet.set(bitmap_to_sprite_t_flipv(i), i * sprite_size);
     }
 
     return {
-        bitmapData: data,
-        printCharacterBitmap: print,
-        getCharacterBitmap: get_bitmap
-    };
+        sprite_data: sprite_sheet,
+        sprite_width: SPRITE_WIDTH,
+        sprite_height: SPRITE_HEIGHT,
+        print_sprite: pp,
+        at: (char_code) => sprite_sheet.slice(sprite_size * char_code, sprite_size * (char_code + 1)),
+    }
 }
+
+// const sprite_sheet = make_ascii_sprite_sheet(0, 128);
+// sprite_sheet.print_sprite(sprite_sheet.at(109));
