@@ -1,3 +1,4 @@
+import { assert } from "./utils.js";
 
 export default class Buffers {
     /**
@@ -7,7 +8,7 @@ export default class Buffers {
     constructor(device, base_label) {
         this.device = device;
         this.label = base_label;
-        this.binding = 0;
+        this.binding_ix = 0;
         this.entries = [];
     }
 
@@ -21,14 +22,19 @@ export default class Buffers {
             usage: usage | GPUBufferUsage.COPY_DST,
         });
         this.device.queue.writeBuffer(buf, 0, data);
-        this.entries.push({ binding: this.binding, resource: { buffer: buf } });
-        this.binding += 1;
+        this.update_bind_group({ buffer: buf });
         return buf;
+    }
+
+    update_bind_group(resource) {
+        assert(resource !== undefined && resource !== null, "resource cannot be null");
+        this.entries.push({ binding: this.binding_ix, resource: resource });
+        this.binding_ix += 1;
     }
 
     get_bind_group(pipeline) {
         return this.device.createBindGroup({
-            label: "TextBindGroup",
+            label: this.label + "BindGroup",
             layout: pipeline.getBindGroupLayout(0),
             entries: this.entries
         });
