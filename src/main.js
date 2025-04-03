@@ -107,9 +107,14 @@ async function main() {
     plane_gui.add('show_axis', show_axis);
     plane_gui.add('camera', camera);
 
+    const text_controls = new StackedWidgets([], 1, 1);
+    text_controls.add('scale', new NumberWidget("Font size", 10, 1, 30));
+    text_controls.add('px', new NumberWidget("Padding x", 1, 0, 10));
+    text_controls.add('py', new NumberWidget("Padding y", 0, 0, 10));
+
     const text_gui = new GUI();
     text_gui.add('bg', new ColorWidget('Background color', [252, 253, 249, 1.0]));
-    text_gui.add('scale', new NumberWidget("Font size", 10, 1, 30));
+    text_gui.add('config', text_controls);
 
     const particles_renderer = new ParticlesRenderer(device, context, particles);
     const triangle_render = new TriangleRenderer(device, context);
