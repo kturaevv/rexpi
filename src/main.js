@@ -111,10 +111,13 @@ async function main() {
     text_controls.add('scale', new NumberWidget("Font size", 10, 1, 30));
     text_controls.add('px', new NumberWidget("Padding x", 1, 0, 10));
     text_controls.add('py', new NumberWidget("Padding y", 0, 0, 10));
+    text_controls.add('mx', new NumberWidget("Margin x", 10, 0, 30));
+    text_controls.add('my', new NumberWidget("Margin y", 10, 0, 30));
 
     const text_gui = new GUI();
     text_gui.add('bg', new ColorWidget('Background color', [252, 253, 249, 1.0]));
     text_gui.add('config', text_controls);
+    text_gui.add('debug', new CheckboxWidget("Debug"));
 
     const particles_renderer = new ParticlesRenderer(device, context, particles);
     const triangle_render = new TriangleRenderer(device, context);
