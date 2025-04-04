@@ -53,17 +53,18 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
     // Compute to which char_ix sprite belongs to 
     let element_pos = floor(screen_pos / ELEMENT_DIMS);
-    let line_capacity = floor((config.dims.x - 2 * MARGIN_DIMS.x) / ELEMENT_DIMS.x);
-    let line_number = element_pos.y * line_capacity;
-    let char_ix = line_number + element_pos.x;
-    let is_out_of_bounds = f32(char_ix) > char_count;
+    let line_capacity = floor((config.dims.x - 2 * MARGIN_DIMS.x) / ELEMENT_DIMS.x); 
 
     // Text array is f32 but char_ix is u8
+    let char_ix = element_pos.y * line_capacity + element_pos.x;
     let char_maj = u32(floor(char_ix / 4f));
     let char_min = u32(fract(char_ix / 4f) * 4f);
     let char_byte = unpack4x8unorm(text[char_maj])[char_min] * 255;
+
+    let is_out_of_bounds = f32(char_ix) > char_count; 
     let is_special_char = char_byte < 33;
-    
+    let is_sprite_clipped = floor((element_pos.x + 1) * ELEMENT_DIMS.x) > (config.dims.x - 2 * MARGIN_DIMS.x);
+
     let inner_pos = fract(screen_pos / ELEMENT_DIMS);
 
     // Check padding and remap element to sprite pos in range 0..1
@@ -86,6 +87,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
         is_margin || \
         is_padding || \
         is_special_char || \
+        is_sprite_clipped || \
         is_out_of_bounds; 
     let text_result = select(text_bg_mix, bg_color, is_bg);
 
@@ -98,7 +100,8 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     let pos_norm = vec4f(screen_pos.xy / config.dims, 0.0, 1.0);
 
     var debug = mix(bl, g, f32(is_margin));
-    debug = mix(debug, wh, f32(is_padding || is_out_of_bounds) * (1.0 - f32(is_margin)));
+    debug = mix(debug, wh, f32((is_padding || is_out_of_bounds) && !is_margin));
+    debug = mix(debug, b, f32(is_sprite_clipped && !is_margin && !is_out_of_bounds));
     debug = mix(debug, pos_norm, f32(!is_bg));
 
     return select(text_result, debug, bool(config.debug));
@@ -119,6 +122,12 @@ export default class TextRenderer extends Renderer {
 
         this.buffers = new Buffers(device, 'Text');
 
+        let TEXT = "\tThis text is rendered on a GPU!\nAdded padding, so this shit is readible :)";
+
+        const get_text = () => {
+            return preprocess(TEXT, ...get_config());
+        };
+
         const get_config = () =>
             new Float32Array(
                 [
@@ -129,39 +138,51 @@ export default class TextRenderer extends Renderer {
                 ]
             );
         const get_bg_color = () => new Float32Array(this.gui.bg.value);
+        const update_text_buf = () => {
+            this.device.queue.writeBuffer(this.text_buf, 0, get_text());
+        }
 
         this.config = this.buffers.create_buffer(get_config(), GPUBufferUsage.UNIFORM, 'Config');
         this.bg_color = this.buffers.create_buffer(get_bg_color(), GPUBufferUsage.UNIFORM, 'Background');
 
         document.addEventListener('canvas_resize', () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.debug.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.config.scale.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.config.px.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.config.py.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.config.mx.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.config.my.event, () => {
             this.device.queue.writeBuffer(this.config, 0, get_config());
+            update_text_buf();
         });
         document.addEventListener(this.gui.bg.event, () => {
             this.device.queue.writeBuffer(this.bg_color, 0, get_bg_color());
+            update_text_buf();
         });
 
         { // Texture
             const sprite_sheet = make_ascii_sprite_sheet(0, 128);
 
             this.sampler = this.device.createSampler({
+                label: 'TextSampler',
                 magFilter: 'nearest',
                 minFilter: 'nearest',
             });
@@ -180,13 +201,7 @@ export default class TextRenderer extends Renderer {
             );
         }
 
-        let text_encoder = new TextEncoder();
-        let msg = "\tThis text is rendered on GPU!\nAdded padding, so this shit is readible :)";
-
-        while (msg.length % 4 != 0) { msg += " "; }
-        let msg_buf = text_encoder.encode(msg);
-
-        this.buffers.create_buffer(msg_buf, GPUBufferUsage.STORAGE);
+        this.text_buf = this.buffers.create_buffer(get_text(), GPUBufferUsage.STORAGE);
         this.buffers.update_bind_group(this.sampler);
         this.buffers.update_bind_group(this.ascii_atlas_texture.createView());
 
@@ -236,3 +251,42 @@ export default class TextRenderer extends Renderer {
         };
     }
 }
+
+let preprocess = (
+    txt,
+    width,
+    _height,
+    px,
+    _py,
+    mx,
+    _my,
+    font_size
+) => {
+    // Simple pre-processing, just swap special. chars with ' ' spaces 
+    const floor = (v) => Math.floor(v);
+    let out = new Uint8Array(txt.length * 4);
+    let sprite_w = 5;
+    let element_size = (sprite_w + px) * font_size;
+    let line_capacity = floor((width - 2 * mx * font_size) / element_size);
+
+    let i = 0;
+    let edit = 0;
+    for (; i < txt.length; i++) {
+        if (txt[i] === '\t') {
+            for (let j = 0; j < 4; j++) {
+                out[edit++] = ' '.charCodeAt(0);
+            }
+        } else if (txt[i] === '\n') {
+            let chars_remaining = line_capacity - edit % line_capacity;
+            if (chars_remaining == line_capacity) continue;
+
+            for (let j = 0; j < chars_remaining; j++) {
+                out[edit++] = ' '.charCodeAt(0)
+            }
+        } else {
+            out[edit++] = txt[i].charCodeAt(0);
+        }
+    }
+    return out;
+};
+
