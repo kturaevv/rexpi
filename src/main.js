@@ -108,16 +108,17 @@ async function main() {
     plane_gui.add('camera', camera);
 
     const text_controls = new StackedWidgets([], 1, 1);
-    text_controls.add('scale', new NumberWidget("Font size", 6, 1, 30));
-    text_controls.add('px', new NumberWidget("Padding x", 1, 0, 10));
-    text_controls.add('py', new NumberWidget("Padding y", 0, 0, 10));
-    text_controls.add('mx', new NumberWidget("Margin x", 10, 0, 50));
-    text_controls.add('my', new NumberWidget("Margin y", 10, 0, 50));
+    text_controls.add('scale', new SliderWidget("Font size", 6, 1, 30, 0.01));
+    text_controls.add('px', new SliderWidget("Padding x", 1, 0, 10, 0.01));
+    text_controls.add('py', new SliderWidget("Padding y", 0, 0, 10, 0.01));
+    text_controls.add('mx', new SliderWidget("Margin x", 10, 0, 50, 0.01));
+    text_controls.add('my', new SliderWidget("Margin y", 10, 0, 50, 0.01));
 
     const text_gui = new GUI();
-    text_gui.add('bg', new ColorWidget('Background color', [255, 255, 255, 1.0]));
+    text_gui.add('bg', new ColorWidget('Background color', [147, 122, 122, 1.0]));
     text_gui.add('config', text_controls);
     text_gui.add('debug', new CheckboxWidget("Debug"));
+    text_gui.add('word_wrap', new CheckboxWidget("Word wrap"));
 
     const particles_renderer = new ParticlesRenderer(device, context, particles);
     const triangle_render = new TriangleRenderer(device, context);

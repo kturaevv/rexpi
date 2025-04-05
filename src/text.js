@@ -1,4 +1,3 @@
-import { quat, mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 import Buffers from "./buffers.js";
 import make_ascii_sprite_sheet from "./bitmap_font.js";
@@ -119,64 +118,42 @@ export default class TextRenderer extends Renderer {
         this.gui = gui;
         this.device = device;
         this.context = context;
-
         this.buffers = new Buffers(device, 'Text');
 
-        let TEXT = "\tThis text is rendered on a GPU!\nAdded padding, so this shit is readible :)";
+        let TEXT = "\tThis text is rendered entirely on a GPU with custom shader for 5x8 ASCII bitmap font :)";
 
         const get_text = () => {
-            return preprocess(TEXT, ...get_config());
+            return preprocess(TEXT, ...get_config(), gui.word_wrap.value);
         };
-
         const get_config = () =>
             new Float32Array(
                 [
                     context.canvas.width, context.canvas.height,
-                    this.gui.config.px.value, this.gui.config.py.value,
-                    this.gui.config.mx.value, this.gui.config.my.value,
-                    this.gui.config.scale.value, this.gui.debug.value,
+                    gui.config.px.value, gui.config.py.value,
+                    gui.config.mx.value, gui.config.my.value,
+                    gui.config.scale.value, gui.debug.value,
                 ]
             );
-        const get_bg_color = () => new Float32Array(this.gui.bg.value);
-        const update_text_buf = () => {
-            this.device.queue.writeBuffer(this.text_buf, 0, get_text());
+        const get_bg_color = () => new Float32Array(gui.bg.value);
+
+        const update_bg = () => {
+            device.queue.writeBuffer(this.bg_color, 0, get_bg_color());
+        }
+        const update = () => {
+            device.queue.writeBuffer(this.text_buf, 0, get_text());
+            device.queue.writeBuffer(this.config, 0, get_config());
         }
 
-        this.config = this.buffers.create_buffer(get_config(), GPUBufferUsage.UNIFORM, 'Config');
-        this.bg_color = this.buffers.create_buffer(get_bg_color(), GPUBufferUsage.UNIFORM, 'Background');
-
-        document.addEventListener('canvas_resize', () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.debug.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.config.scale.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.config.px.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.config.py.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.config.mx.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.config.my.event, () => {
-            this.device.queue.writeBuffer(this.config, 0, get_config());
-            update_text_buf();
-        });
-        document.addEventListener(this.gui.bg.event, () => {
-            this.device.queue.writeBuffer(this.bg_color, 0, get_bg_color());
-            update_text_buf();
-        });
+        const listen = (e, fn) => document.addEventListener(e, fn);
+        listen('canvas_resize', () => update());
+        listen(gui.debug.event, () => update());
+        listen(gui.config.scale.event, () => update());
+        listen(gui.config.px.event, () => update());
+        listen(gui.config.py.event, () => update());
+        listen(gui.config.mx.event, () => update());
+        listen(gui.config.my.event, () => update());
+        listen(gui.word_wrap.event, () => update());
+        listen(gui.bg.event, () => update_bg());
 
         { // Texture
             const sprite_sheet = make_ascii_sprite_sheet(0, 128);
@@ -201,6 +178,8 @@ export default class TextRenderer extends Renderer {
             );
         }
 
+        this.config = this.buffers.create_buffer(get_config(), GPUBufferUsage.UNIFORM, 'Config');
+        this.bg_color = this.buffers.create_buffer(get_bg_color(), GPUBufferUsage.UNIFORM, 'Background');
         this.text_buf = this.buffers.create_buffer(get_text(), GPUBufferUsage.STORAGE);
         this.buffers.update_bind_group(this.sampler);
         this.buffers.update_bind_group(this.ascii_atlas_texture.createView());
@@ -260,7 +239,9 @@ let preprocess = (
     _py,
     mx,
     _my,
-    font_size
+    font_size,
+    _debug,
+    word_wrap
 ) => {
     // Simple pre-processing, just swap special. chars with ' ' spaces 
     const floor = (v) => Math.floor(v);
@@ -272,17 +253,25 @@ let preprocess = (
     let i = 0;
     let edit = 0;
     for (; i < txt.length; i++) {
+        let chars_remaining = line_capacity - edit % line_capacity;
+        let space_char_code = ' '.charCodeAt(0);
+
         if (txt[i] === '\t') {
             for (let j = 0; j < 4; j++) {
-                out[edit++] = ' '.charCodeAt(0);
+                out[edit++] = space_char_code;
             }
         } else if (txt[i] === '\n') {
-            let chars_remaining = line_capacity - edit % line_capacity;
-            if (chars_remaining == line_capacity) continue;
-
             for (let j = 0; j < chars_remaining; j++) {
-                out[edit++] = ' '.charCodeAt(0)
+                out[edit++] = space_char_code;
             }
+        } else if (word_wrap && chars_remaining === 1 && txt[i] !== ' ') {
+            let prev = edit;
+            while (i > 0 && edit > 0 && txt[i] !== ' ') {
+                out[edit--] = space_char_code;
+                i--;
+            }
+            edit = prev;
+            out[edit++] = txt[i].charCodeAt(0);
         } else {
             out[edit++] = txt[i].charCodeAt(0);
         }

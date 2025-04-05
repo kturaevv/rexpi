@@ -67,14 +67,15 @@ export class ParticlesRenderer extends Renderer {
             this.create_ball_compute_pipeline();
         };
 
-        document.addEventListener('canvas_resize', update_config)
-        document.addEventListener(gui.color.event, update_config);
-        document.addEventListener(gui.bounds.event, update_config);
-        document.addEventListener(gui.debug.event, update_config);
-        document.addEventListener(gui.amount.event, init);
-        document.addEventListener(gui.refresh.event, init);
-        document.addEventListener(gui.size.event, init);
-        document.addEventListener(gui.cursor.event, () => set_cursor(this.gui.cursor.value));
+        const listen = (e, fn) => document.addEventListener(e, fn);
+        listen('canvas_resize', update_config)
+        listen(gui.color.event, update_config);
+        listen(gui.bounds.event, update_config);
+        listen(gui.debug.event, update_config);
+        listen(gui.amount.event, init);
+        listen(gui.refresh.event, init);
+        listen(gui.size.event, init);
+        listen(gui.cursor.event, () => set_cursor(this.gui.cursor.value));
 
         init();
 
