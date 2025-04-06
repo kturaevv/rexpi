@@ -246,25 +246,38 @@ let preprocess = (
     // Simple pre-processing, just swap special. chars with ' ' spaces 
     const floor = (v) => Math.floor(v);
     let out = new Uint8Array(txt.length * 4);
-    let sprite_w = 5;
-    let element_size = (sprite_w + px) * font_size;
-    let line_capacity = floor((width - 2 * mx * font_size) / element_size);
+    const sprite_w = 5;
+    const element_size = (sprite_w + px) * font_size;
+    const line_capacity = floor((width - 2 * mx * font_size) / element_size);
+    const space_char_code = ' '.charCodeAt(0);
 
     let i = 0;
     let edit = 0;
+    let line = '';
     for (; i < txt.length; i++) {
         let chars_remaining = line_capacity - edit % line_capacity;
-        let space_char_code = ' '.charCodeAt(0);
+
+        line += `${txt[i]} ${chars_remaining}`;
+        if (chars_remaining === 1) {
+            console.log(line);
+            line = '';
+        }
 
         if (txt[i] === '\t') {
+            // Tab
             for (let j = 0; j < 4; j++) {
                 out[edit++] = space_char_code;
             }
         } else if (txt[i] === '\n') {
+            // Newline
             for (let j = 0; j < chars_remaining; j++) {
                 out[edit++] = space_char_code;
             }
-        } else if (word_wrap && chars_remaining === 1 && txt[i] !== ' ') {
+        } else if (txt[i] === ' ' && chars_remaining === line_capacity) {
+            // Handle rogue space char at line start
+            continue;
+        } else if (word_wrap && chars_remaining === 1 && txt[i + 1] !== ' ') {
+            // Word wrap
             let prev = edit;
             while (i > 0 && edit > 0 && txt[i] !== ' ') {
                 out[edit--] = space_char_code;

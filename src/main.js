@@ -108,8 +108,8 @@ async function main() {
     plane_gui.add('camera', camera);
 
     const text_controls = new StackedWidgets([], 1, 1);
-    text_controls.add('scale', new SliderWidget("Font size", 6, 1, 30, 0.01));
-    text_controls.add('px', new SliderWidget("Padding x", 1, 0, 10, 0.01));
+    text_controls.add('scale', new SliderWidget("Font size", 6.06, 1, 30, 0.01));
+    text_controls.add('px', new SliderWidget("Padding x", 1.26, 0, 10, 0.01));
     text_controls.add('py', new SliderWidget("Padding y", 0, 0, 10, 0.01));
     text_controls.add('mx', new SliderWidget("Margin x", 10, 0, 50, 0.01));
     text_controls.add('my', new SliderWidget("Margin y", 10, 0, 50, 0.01));
