@@ -1,5 +1,7 @@
 import { mat3, mat4, vec3 } from "gl-matrix";
 import Renderer from "./renderer.js";
+import GUI from "./widgets/gui.js";
+import wasd_keys from "./widgets/wasd.js";
 
 const shader = `
 struct Canvas {
@@ -100,10 +102,11 @@ export default class CubeRenderer extends Renderer {
     /**
      * @param {GPUDevice} device 
      * */
-    constructor(device, context, gui) {
+    constructor(device, context) {
         super();
 
-        this.gui = gui;
+        this.gui = new GUI();
+        this.gui.add('camera', wasd_keys());
 
         this.settings = {
             fov: 60 * Math.PI / 180,

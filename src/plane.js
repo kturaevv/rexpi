@@ -1,6 +1,8 @@
 import { quat, mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 import Buffers from "./buffers.js";
+import GUI from "./widgets/gui.js";
+import wasd_keys from "./widgets/wasd.js";
 
 const shader_code = `
 struct Settings { fov: f32, near: f32, far: f32, show_axis: u32}
@@ -98,9 +100,14 @@ export default class PlaneRenderer extends Renderer {
      * @param {GPUDevice} device
      * @param {GPUCanvasContext} context
      **/
-    constructor(device, context, gui) {
+    constructor(device, context) {
         super();
-        this.gui = gui;
+
+        this.gui = new GUI();
+        this.gui.add('cursor', ['cursor']);
+        this.gui.add('show_axis', true, "Show axis");
+        this.gui.add('camera', wasd_keys());
+
         this.device = device;
         this.context = context;
         this.buffers = new Buffers(device, 'Plane');
@@ -280,14 +287,13 @@ export default class PlaneRenderer extends Renderer {
             device.queue.writeBuffer(this.settings_buffer, 0, this.settings.buffer_view());
         };
 
-        const listen = (e, fn) => document.addEventListener(e, fn);
-        listen('canvas_resize', () => this.update_view_buffers());
-        listen(this.gui.show_axis.event, () => update_settings());
-        listen(this.gui.cursor.event, () => handle_drag(this.gui.cursor.value));
-        listen(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
-        listen(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
-        listen(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
-        listen(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+        document.addEventListener('canvas_resize', () => this.update_view_buffers());
+        this.gui.show_axis.listen(() => update_settings());
+        this.gui.cursor.listen(() => handle_drag(this.gui.cursor.value));
+        this.gui.camera.w.listen(() => move_camera_eye(this.gui.camera.w.key));
+        this.gui.camera.a.listen(() => move_camera_eye(this.gui.camera.a.key));
+        this.gui.camera.s.listen(() => move_camera_eye(this.gui.camera.s.key));
+        this.gui.camera.d.listen(() => move_camera_eye(this.gui.camera.d.key));
     }
 
     create_inverse_view_projection_buffer() {

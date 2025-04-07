@@ -1,3 +1,5 @@
+import GUI from "./widgets/gui.js";
+
 var RENDERER_COUNT = 0;
 
 export default class Renderer {
@@ -5,7 +7,7 @@ export default class Renderer {
         RENDERER_COUNT += 1;
         this.id = RENDERER_COUNT;
         this.is_rendering = false;
-        this.gui = undefined;
+        this.gui = new GUI();
         this.render_callback = () => { throw new Error("Render callback is not implemented!") };
     }
 

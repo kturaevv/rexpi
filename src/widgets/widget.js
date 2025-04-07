@@ -26,6 +26,11 @@ export default class Widget {
         throw new Error("init() must be implemented!");
     }
 
+    listen(fn) {
+        assert(this.event !== null && this.event !== undefined, "Widget [event] is undefined!");
+        document.addEventListener(this.event, fn);
+    }
+
     get_id() {
         assert(this.id !== null, "[id] value of a widget is null!");
         return this.id;

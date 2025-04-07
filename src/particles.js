@@ -27,8 +27,18 @@ export class ParticlesRenderer extends Renderer {
      * @param {GPUCanvasContext} context
      * @param {GUI} data 
      * */
-    constructor(device, context, gui) {
+    constructor(device, context) {
         super();
+
+        const gui = new GUI();
+        gui.add('refresh', ['btn', false], 'Refresh');
+        gui.add('debug', false, 'Debug');
+        gui.add('bounds', false, 'Bounds');
+        gui.add('amount', [100, 0, 100000], 'Amount');
+        gui.add('size', [0.01, 0.001, 0.3, 0.001], 'Size');
+        gui.add('bg_color', ['rgba', 100.0, 100.0, 100.0, 1.0], 'Background color');
+        gui.add('color', ['rgba', 183.0, 138.0, 84.0, 0.9], "Particles color");
+        gui.add('cursor', ['cursor']);
 
         const data = gui.data();
         assert(data.bg_color.length === 4, "Color should be length 4");
@@ -69,13 +79,13 @@ export class ParticlesRenderer extends Renderer {
 
         const listen = (e, fn) => document.addEventListener(e, fn);
         listen('canvas_resize', update_config)
-        listen(gui.color.event, update_config);
-        listen(gui.bounds.event, update_config);
-        listen(gui.debug.event, update_config);
-        listen(gui.amount.event, init);
-        listen(gui.refresh.event, init);
-        listen(gui.size.event, init);
-        listen(gui.cursor.event, () => set_cursor(this.gui.cursor.value));
+        gui.color.listen(update_config);
+        gui.bounds.listen(update_config);
+        gui.debug.listen(update_config);
+        gui.amount.listen(init);
+        gui.refresh.listen(init);
+        gui.size.listen(init);
+        gui.cursor.listen(() => set_cursor(this.gui.cursor.value));
 
         init();
 

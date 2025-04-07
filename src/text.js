@@ -1,6 +1,8 @@
 import Renderer from "./renderer.js";
 import Buffers from "./buffers.js";
 import make_ascii_sprite_sheet from "./bitmap_font.js";
+import GUI from "./widgets/gui.js";
+import { StackedWidgets } from "./widgets/stack_widgets.js";
 
 
 const shader_code = `
@@ -112,8 +114,21 @@ export default class TextRenderer extends Renderer {
      * @param {GPUDevice} device
      * @param {GPUCanvasContext} context
      **/
-    constructor(device, context, gui) {
+    constructor(device, context) {
         super();
+
+        const fmt_controls = new StackedWidgets();
+        fmt_controls.add('scale', [6.06, 1, 30, 0.01], "Font size");
+        fmt_controls.add('px', [1.26, 0, 10, 0.01], "Padding x");
+        fmt_controls.add('py', [0, 0, 10, 0.01], "Padding y");
+        fmt_controls.add('mx', [10, 0, 50, 0.01], "Margin x");
+        fmt_controls.add('my', [10, 0, 50, 0.01], "Margin y");
+
+        const gui = new GUI();
+        gui.add('bg', ['rgba', 147, 122, 122, 1.0], "Background color");
+        gui.add('config', fmt_controls, "Config");
+        gui.add('debug', false, "Debug");
+        gui.add('word_wrap', false, "Word wrap");
 
         this.gui = gui;
         this.device = device;
@@ -144,16 +159,15 @@ export default class TextRenderer extends Renderer {
             device.queue.writeBuffer(this.config, 0, get_config());
         }
 
-        const listen = (e, fn) => document.addEventListener(e, fn);
-        listen('canvas_resize', () => update());
-        listen(gui.debug.event, () => update());
-        listen(gui.config.scale.event, () => update());
-        listen(gui.config.px.event, () => update());
-        listen(gui.config.py.event, () => update());
-        listen(gui.config.mx.event, () => update());
-        listen(gui.config.my.event, () => update());
-        listen(gui.word_wrap.event, () => update());
-        listen(gui.bg.event, () => update_bg());
+        document.addEventListener('canvas_resize', () => update());
+        gui.debug.listen(update);
+        gui.config.px.listen(update);
+        gui.config.py.listen(update);
+        gui.config.mx.listen(update);
+        gui.config.my.listen(update);
+        gui.word_wrap.listen(update);
+        gui.config.scale.listen(update);
+        gui.bg.listen(update_bg);
 
         { // Texture
             const sprite_sheet = make_ascii_sprite_sheet(0, 128);
