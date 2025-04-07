@@ -18,7 +18,7 @@ export class ButtonWidget extends Widget {
         this.register();
     }
 
-    get_button_widget() {
+    style() {
         return `
             <div class="flex items-center justify-between space-x-4" id=${this.id}>
                 <button
@@ -36,7 +36,7 @@ export class ButtonWidget extends Widget {
 
         // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", this.get_button_widget());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         // Get button element and add event listener
         const button = document.getElementById(this.button_tag);

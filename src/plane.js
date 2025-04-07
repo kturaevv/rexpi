@@ -280,13 +280,14 @@ export default class PlaneRenderer extends Renderer {
             device.queue.writeBuffer(this.settings_buffer, 0, this.settings.buffer_view());
         };
 
-        document.addEventListener('canvas_resize', () => this.update_view_buffers());
-        document.addEventListener(this.gui.show_axis.event, () => update_settings());
-        document.addEventListener(this.gui.cursor.event, () => handle_drag(this.gui.cursor.value));
-        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
-        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
-        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
-        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+        const listen = (e, fn) => document.addEventListener(e, fn);
+        listen('canvas_resize', () => this.update_view_buffers());
+        listen(this.gui.show_axis.event, () => update_settings());
+        listen(this.gui.cursor.event, () => handle_drag(this.gui.cursor.value));
+        listen(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
+        listen(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
+        listen(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
+        listen(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
     }
 
     create_inverse_view_projection_buffer() {

@@ -253,15 +253,8 @@ let preprocess = (
 
     let i = 0;
     let edit = 0;
-    let line = '';
     for (; i < txt.length; i++) {
         let chars_remaining = line_capacity - edit % line_capacity;
-
-        line += `${txt[i]} ${chars_remaining}`;
-        if (chars_remaining === 1) {
-            console.log(line);
-            line = '';
-        }
 
         if (txt[i] === '\t') {
             // Tab

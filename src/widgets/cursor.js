@@ -1,17 +1,17 @@
 import Widget from "./widget.js";
 
-export default class CursorWidget extends Widget {
+export class CursorWidget extends Widget {
     constructor(label = "Mouse") {
         super();
         this.event = this.id + label;
         this.value = { curr: { x: null, y: null }, is_dragging: false, prev: { x: null, y: null } };
-        this._tag = `
+        this.tag_style = `
         <div 
             id="${this.id}" 
             class=" absolute bg-neutral-700 text-black font-mono font-thin text-sm z-[1000] rounded-lg">
         </div>
         `;
-        this._cursor = `
+        this.cursor_style = `
         <div 
             id="${this.id}_cursor" 
             class="fixed w-1.5 h-1.5 bg-black rounded-full transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
@@ -21,8 +21,8 @@ export default class CursorWidget extends Widget {
     }
 
     setup() {
-        document.body.insertAdjacentHTML('beforeend', this._tag);
-        document.body.insertAdjacentHTML('beforeend', this._cursor);
+        document.body.insertAdjacentHTML('beforeend', this.tag_style);
+        document.body.insertAdjacentHTML('beforeend', this.cursor_style);
 
         const event = new CustomEvent(this.event);
         const canvas = document.getElementById('canvas');

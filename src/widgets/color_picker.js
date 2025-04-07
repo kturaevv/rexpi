@@ -33,7 +33,7 @@ export class ColorWidget extends Widget {
         this.register();
     }
 
-    get_color_picker_widget() {
+    style() {
         return `
         <!-- Color picker widget -->
         <div class="" id=${this.id}>
@@ -125,7 +125,7 @@ export class ColorWidget extends Widget {
         const color_change_event = new CustomEvent(this.event);
 
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", this.get_color_picker_widget());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         const red_slider = document.getElementById(this.red_slider);
         const green_slider = document.getElementById(this.green_slider);

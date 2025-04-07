@@ -2,19 +2,15 @@
 import { assert } from "./utils.js";
 import { TriangleRenderer } from "./triangle.js";
 import { ParticlesRenderer } from "./particles.js";
-import { ColorWidget } from "./widgets/color_picker.js";
-import { NumberWidget } from "./widgets/number.js";
-import { CheckboxWidget } from "./widgets/checkbox.js";
-import { ButtonWidget } from "./widgets/button.js";
-import { SliderWidget } from "./widgets/slider.js";
 import GUI from "./widgets/gui.js";
 import AppRegistry from "./widgets/registry.js";
 import { StackedWidgets } from "./widgets/stack_widgets.js";
+import { CursorWidget } from "./widgets/cursor.js";
 import CubeRenderer from "./cube.js";
-import { KeyWidget } from "./widgets/keyboard.js";
 import PlaneRenderer from "./plane.js";
-import CursorWidget from "./widgets/cursor.js";
 import TextRenderer from "./text.js";
+import make_wasd from "./widgets/wasd.js";
+import wasd_keys from "./widgets/wasd.js";
 
 async function init() {
     const adapter = await navigator.gpu.requestAdapter();
@@ -73,65 +69,55 @@ async function main() {
     const [device, context] = await init();
 
     const render_opts = new StackedWidgets([], 3, 2);
-    render_opts.add('triangle', new ButtonWidget("Triangle", false));
-    render_opts.add('particles', new ButtonWidget("Particles", false));
-    render_opts.add('cube', new ButtonWidget("Cube", false));
-    render_opts.add('plane', new ButtonWidget("Plane", false));
-    render_opts.add('text', new ButtonWidget("Text", false));
+    render_opts.add('triangle', ['btn', false], "Triangle");
+    render_opts.add('particles', ['btn', false], "Particles");
+    render_opts.add('cube', ['btn', false], "Cube");
+    render_opts.add('plane', ['btn', false], "Plane");
+    render_opts.add('text', ['btn', false], "Text");
 
-    const particles = new GUI();
-    particles.add("refresh", new ButtonWidget("Refresh", false))
-    particles.add('debug', new CheckboxWidget("Debug"));
-    particles.add('bounds', new CheckboxWidget("Bounds"));
-    particles.add('amount', new NumberWidget("Amount", 100, 0, 100000));
-    particles.add('size', new SliderWidget("Size", 0.01, 0.001, 0.3, 0.001));
-    particles.add('bg_color', new ColorWidget("Background Color", [100.0, 100.0, 100.0, 1.0]));
-    particles.add('color', new ColorWidget("Particles Color", [183.0, 138.0, 84.0, 0.9]));
-    particles.add('cursor', new CursorWidget());
+    const particles_gui = new GUI();
+    particles_gui.add('refresh', ['btn', false], 'Refresh');
+    particles_gui.add('debug', false, 'Debug');
+    particles_gui.add('bounds', false, 'Bounds');
+    particles_gui.add('amount', [100, 0, 100000], 'Amount');
+    particles_gui.add('size', [0.01, 0.001, 0.3, 0.001], 'Size');
+    particles_gui.add('bg_color', ['rgba', 100.0, 100.0, 100.0, 1.0], 'Background color');
+    particles_gui.add('color', ['rgba', 183.0, 138.0, 84.0, 0.9], "Particles color");
+    particles_gui.add('cursor', ['cursor']);
+    const particles_renderer = new ParticlesRenderer(device, context, particles_gui);
 
-    const show_axis = new CheckboxWidget("Show axis", true);
-
-    const camera = new StackedWidgets([], 3, 1);
-    camera.add('-', new KeyWidget(''));
-    camera.add('w', new KeyWidget('W'));
-    camera.add('-', new KeyWidget(''));
-    camera.add('a', new KeyWidget('A'));
-    camera.add('s', new KeyWidget('S'));
-    camera.add('d', new KeyWidget('D'));
-
-    const cube = new GUI();
-    cube.add('camera', camera);
+    const cube_gui = new GUI();
+    cube_gui.add('camera', wasd_keys());
+    const cube_render = new CubeRenderer(device, context, cube_gui);
 
     const plane_gui = new GUI();
     plane_gui.add('cursor', new CursorWidget());
-    plane_gui.add('show_axis', show_axis);
-    plane_gui.add('camera', camera);
+    plane_gui.add('show_axis', true, "Show axis");
+    plane_gui.add('camera', wasd_keys());
+    const plane_render = new PlaneRenderer(device, context, plane_gui);
 
-    const text_controls = new StackedWidgets([], 1, 1);
-    text_controls.add('scale', new SliderWidget("Font size", 6.06, 1, 30, 0.01));
-    text_controls.add('px', new SliderWidget("Padding x", 1.26, 0, 10, 0.01));
-    text_controls.add('py', new SliderWidget("Padding y", 0, 0, 10, 0.01));
-    text_controls.add('mx', new SliderWidget("Margin x", 10, 0, 50, 0.01));
-    text_controls.add('my', new SliderWidget("Margin y", 10, 0, 50, 0.01));
+    const text_controls = new StackedWidgets();
+    text_controls.add('scale', [6.06, 1, 30, 0.01], "Font size");
+    text_controls.add('px', [1.26, 0, 10, 0.01], "Padding x");
+    text_controls.add('py', [0, 0, 10, 0.01], "Padding y");
+    text_controls.add('mx', [10, 0, 50, 0.01], "Margin x");
+    text_controls.add('my', [10, 0, 50, 0.01], "Margin y");
 
     const text_gui = new GUI();
-    text_gui.add('bg', new ColorWidget('Background color', [147, 122, 122, 1.0]));
-    text_gui.add('config', text_controls);
-    text_gui.add('debug', new CheckboxWidget("Debug"));
-    text_gui.add('word_wrap', new CheckboxWidget("Word wrap"));
-
-    const particles_renderer = new ParticlesRenderer(device, context, particles);
-    const triangle_render = new TriangleRenderer(device, context);
-    const cube_render = new CubeRenderer(device, context, cube);
-    const plane_render = new PlaneRenderer(device, context, plane_gui);
+    text_gui.add('bg', ['rgba', 147, 122, 122, 1.0], "Background color");
+    text_gui.add('config', text_controls, "Config");
+    text_gui.add('debug', false, "Debug");
+    text_gui.add('word_wrap', false, "Word wrap");
     const text_render = new TextRenderer(device, context, text_gui);
 
+    const triangle_render = new TriangleRenderer(device, context);
+
     const sections = new AppRegistry(device);
-    sections.register(document.getElementById(render_opts.particles.id), particles_renderer, particles);
-    sections.register(document.getElementById(render_opts.triangle.id), triangle_render);
-    sections.register(document.getElementById(render_opts.cube.id), cube_render, cube);
-    sections.register(document.getElementById(render_opts.plane.id), plane_render, plane_gui);
-    sections.register(document.getElementById(render_opts.text.id), text_render, text_gui);
+    sections.register(render_opts.particles.id, particles_renderer, particles_gui);
+    sections.register(render_opts.triangle.id, triangle_render);
+    sections.register(render_opts.cube.id, cube_render, cube_gui);
+    sections.register(render_opts.plane.id, plane_render, plane_gui);
+    sections.register(render_opts.text.id, text_render, text_gui);
 
     document.getElementById(render_opts.text.id).click();
 }

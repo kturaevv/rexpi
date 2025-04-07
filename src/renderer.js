@@ -5,6 +5,7 @@ export default class Renderer {
         RENDERER_COUNT += 1;
         this.id = RENDERER_COUNT;
         this.is_rendering = false;
+        this.gui = undefined;
         this.render_callback = () => { throw new Error("Render callback is not implemented!") };
     }
 

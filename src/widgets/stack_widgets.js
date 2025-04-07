@@ -1,17 +1,18 @@
 import { generate_short_id } from "../utils.js";
 import Widget from "./widget.js";
 import Visibility from "./visibility.js";
+import make_widget from "./make.js";
 
 
 export class StackedWidgets extends Widget {
-    constructor(widgets = [], columns = 1, gap = 0) {
+    constructor(widgets = [], columns = 1, gap = 1) {
         super();
         this.id = generate_short_id() + "_stacked";
         this.gap = gap;
         this.columns = columns;
         this.widgets = widgets;
         this.visibility = new Visibility(this.id);
-        this.register();
+        this.insert();
         this.insert_border();
     }
 
@@ -27,7 +28,7 @@ export class StackedWidgets extends Widget {
         return this.widgets.map((widget) => widget.get_value());
     }
 
-    register() {
+    insert() {
         const sidebar = document.getElementById("sidebar");
         sidebar.insertAdjacentHTML(
             "beforeend",
@@ -42,10 +43,10 @@ export class StackedWidgets extends Widget {
         }
     }
 
-    add(name, widget) {
+    add(name, input, label) {
+        let widget = make_widget(name, input, label);
         this.widgets.push(widget);
         this[name] = widget;
-        const stack_widget = document.getElementById(this.id);
-        stack_widget.appendChild(document.getElementById(widget.id));
+        document.getElementById(this.id).appendChild(document.getElementById(widget.id));
     }
 }

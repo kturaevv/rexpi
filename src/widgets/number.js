@@ -27,21 +27,21 @@ export class NumberWidget extends Widget {
         this.register();
     }
 
-    get_number_widget() {
+    style() {
         return `
             <!--Quantity Input Section -->
-                <div class="h-8 flex items-center justify-between space-x-2" id=${this.id}>
-                    <label class="w-20 text-gray-700 font-bold">${this.name}</label >
-                    <input
-                        type="number" min="${this.min}" max="${this.max}" value="${this.value}"
-                        class="border-none rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        id=${this.input_name}
-                    />
-                    <div class="flex space-x-2">
-                        <button id=${this.min_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > - </button>
-                        <button id=${this.add_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > + </button>
-                    </div>
-                </div >
+            <div class="h-8 flex items-center justify-between space-x-2" id=${this.id}>
+                <label class="w-20 text-gray-700 font-bold">${this.name}</label >
+                <input
+                    type="number" min="${this.min}" max="${this.max}" value="${this.value}"
+                    class="border-none rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    id=${this.input_name}
+                />
+                <div class="flex space-x-2">
+                    <button id=${this.min_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > - </button>
+                    <button id=${this.add_button} class="px-3 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors" > + </button>
+                </div>
+            </div >
             `;
     }
 
@@ -50,7 +50,7 @@ export class NumberWidget extends Widget {
 
         // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", this.get_number_widget());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         // Get all required elements
         const number_input = document.getElementById(this.input_name);

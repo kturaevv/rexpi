@@ -25,7 +25,7 @@ export class SliderWidget extends Widget {
         this.register();
     }
 
-    get_slider_widget() {
+    style() {
         return `    
         <div class="h-8 flex items-center" id=${this.id}>
             <label for="green_slider" class="w-20 text-gray-700 font-bold">${this.label}</label>
@@ -44,7 +44,7 @@ export class SliderWidget extends Widget {
 
         // Insert widget into the DOM
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", this.get_slider_widget());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         // Get all required elements
         const self = document.getElementById(this.id);

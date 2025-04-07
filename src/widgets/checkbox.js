@@ -21,7 +21,7 @@ export class CheckboxWidget extends Widget {
         this.register();
     }
 
-    get_checkbox_widget() {
+    style() {
         return `
             <div class="h-8 flex items-center justify-between space-x-4" id=${this.id}>
                 <label class="text-gray-700 text-nowrap font-bold">${this.label}</label>
@@ -38,7 +38,7 @@ export class CheckboxWidget extends Widget {
         const checkbox_change_event = new CustomEvent(this.event);
         const sidebar = document.getElementById("sidebar");
 
-        sidebar.insertAdjacentHTML("beforeend", this.get_checkbox_widget());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         const checkbox = document.getElementById(this.input_tag);
 

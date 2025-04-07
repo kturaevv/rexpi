@@ -32,10 +32,11 @@ export default class AppRegistry {
      * @param {Renderer} renderer
      * @param {GUI} gui
      */
-    register(element, renderer, gui = new GUI()) {
+    register(element_id, renderer, gui = new GUI()) {
         this.guis.push(gui);
 
         // Handle click event
+        const element = document.getElementById(element_id);
         element.addEventListener('click', async () => {
             this.switch_renderer(renderer, gui);
         });

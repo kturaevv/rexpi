@@ -22,7 +22,7 @@ export class KeyWidget extends Widget {
         }
     }
 
-    html() {
+    style() {
         return `
             <div class="flex flex-row space-x-2" id="${this.id}">
                 <div id="${this.key}" class="
@@ -37,7 +37,7 @@ export class KeyWidget extends Widget {
         const key_press_event = new CustomEvent(this.event);
 
         const sidebar = document.getElementById("sidebar");
-        sidebar.insertAdjacentHTML("beforeend", this.html());
+        sidebar.insertAdjacentHTML("beforeend", this.style());
 
         const press = (e) => {
             if (e.key.toLowerCase() === this.key.toLowerCase()) {

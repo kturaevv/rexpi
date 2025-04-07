@@ -1,6 +1,17 @@
 import { assert, generate_short_id } from "../utils.js";
 import Visibility from "./visibility.js";
 
+/**
+ * Base Widget class that provides common functionality for UI components.
+ * 
+ * @class Widget
+ * @property {string}} id - random id
+ * @property {*} value - Current value of the widget, can be any type
+ * @property {Function|null} event - Event handler function for the widget
+ * @property {string|null} label - Display label for the widget
+ * @property {Visibility} visibility - Controls the visibility state of the widget
+ * @property {string
+ */
 export default class Widget {
     constructor() {
         this.id = generate_short_id();

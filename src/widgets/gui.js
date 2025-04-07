@@ -1,4 +1,5 @@
 import { assert } from "../utils.js";
+import make_widget from "./make.js";
 import Widget from "./widget.js";
 
 export default class GUI {
@@ -8,11 +9,12 @@ export default class GUI {
 
     /**
      * @param {String} name
-     * @param {Widget} widget
      * */
-    add(name, widget) {
+    add(name, input, label) {
         assert(name !== undefined, 'Widget [name] is undefined!', name);
-        assert(widget !== undefined, 'Widget [widget] is undefined!', widget);
+
+        let widget = make_widget(name, input, label);
+
         this[name] = widget;
         this.elements.push([name, widget]);
         widget.insert_border();
