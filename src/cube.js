@@ -1,7 +1,8 @@
 import { mat3, mat4, vec3 } from "gl-matrix";
 import Renderer from "./renderer.js";
-import GUI from "./widgets/gui.js";
-import wasd_keys from "./widgets/wasd.js";
+import GUI from "./gui/gui.js";
+import wasd_keys from "./gui/wasd.js";
+import Buffers from "./buffers.js";
 
 const shader = `
 struct Canvas {
@@ -44,58 +45,35 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     return in.color;
 }
 `
-const VERTICES = new Float32Array([
-    // Front face
-    -1.0, -1.0, 1.0,
-    1.0, -1.0, 1.0,
-    1.0, 1.0, 1.0,
-    -1.0, 1.0, 1.0,
-    // Back face
-    -1.0, -1.0, -1.0,
-    -1.0, 1.0, -1.0,
-    1.0, 1.0, -1.0,
-    1.0, -1.0, -1.0,
-]);
 
-const INDICES = new Uint32Array([
-    // Front
-    0, 1, 2,
-    0, 2, 3,
-    // Right
-    1, 7, 6,
-    1, 6, 2,
-    // Back
-    7, 4, 5,
-    7, 5, 6,
-    // Left
-    4, 0, 3,
-    4, 3, 5,
-    // Top
-    3, 2, 6,
-    3, 6, 5,
-    // Bottom
-    4, 7, 1,
-    4, 1, 0,
-]);
-
-class GPUResources {
-    constructor(label, device) {
-        this.label = label;
-        this.device = device;
-    }
-
-    /**
-     * @param {GPUDevice} device
-     * */
-    create_buffer(label = '', data, usage) {
-        const buf = this.device.createBuffer({
-            label: this.label + ': ' + label,
-            size: data.byteLength,
-            usage: usage | GPUBufferUsage.COPY_DST
-        });
-        this.device.queue.writeBuffer(buf, 0, data);
-        return buf;
-    }
+function make_cube() {
+    const verts = new Float32Array([
+        // Front face
+        -1.0, -1.0, 1.0,
+        1.0, -1.0, 1.0,
+        1.0, 1.0, 1.0,
+        -1.0, 1.0, 1.0,
+        // Back face
+        -1.0, -1.0, -1.0,
+        -1.0, 1.0, -1.0,
+        1.0, 1.0, -1.0,
+        1.0, -1.0, -1.0,
+    ]);
+    const idx = new Uint32Array([
+        // Front
+        0, 1, 2, 0, 2, 3,
+        // Right
+        1, 7, 6, 1, 6, 2,
+        // Back
+        7, 4, 5, 7, 5, 6,
+        // Left
+        4, 0, 3, 4, 3, 5,
+        // Top
+        3, 2, 6, 3, 6, 5,
+        // Bottom
+        4, 7, 1, 4, 1, 0,
+    ]);
+    return [verts, idx];
 }
 
 export default class CubeRenderer extends Renderer {
@@ -107,6 +85,7 @@ export default class CubeRenderer extends Renderer {
 
         this.gui = new GUI();
         this.gui.add('camera', wasd_keys());
+        this.gui.add('debug', false, "Debug");
 
         this.settings = {
             fov: 60 * Math.PI / 180,
@@ -119,10 +98,12 @@ export default class CubeRenderer extends Renderer {
         this.device = device;
         this.context = context;
 
-        this.resources = new GPUResources("Cube buffer", device);
-        this.vertex_buffer = this.resources.create_buffer('vertices', VERTICES, GPUBufferUsage.STORAGE);
-        this.index_buffer = this.resources.create_buffer('indices', INDICES, GPUBufferUsage.STORAGE);
-        this.view_matrix_uniform = this.resources.create_buffer('view matrix', mat4.create(), GPUBufferUsage.UNIFORM);
+        const [vertices, indices] = make_cube();
+
+        this.resources = new Buffers(device, "Cube buffer");
+        this.vertex_buffer = this.resources.create_buffer(vertices, GPUBufferUsage.STORAGE, 'vertices');
+        this.index_buffer = this.resources.create_buffer(indices, GPUBufferUsage.STORAGE, 'indices');
+        this.view_matrix_uniform = this.resources.create_buffer(mat4.create(), GPUBufferUsage.UNIFORM, 'view matrix');
 
         this.pipeline = this.create_pipeline();
         this.bind_group = this.create_bind_group();
@@ -163,7 +144,7 @@ export default class CubeRenderer extends Renderer {
             const render_pass = command_encoder.beginRenderPass(this.render_pass_descriptor);
             render_pass.setBindGroup(0, this.bind_group);
             render_pass.setPipeline(this.pipeline);
-            render_pass.draw(3, INDICES.length / 3);
+            render_pass.draw(3, indices.length / 3);
             render_pass.end();
 
             device.queue.submit([command_encoder.finish()]);

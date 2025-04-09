@@ -1,4 +1,4 @@
-import GUI from "./widgets/gui.js";
+import GUI from "./gui/gui.js";
 
 var RENDERER_COUNT = 0;
 

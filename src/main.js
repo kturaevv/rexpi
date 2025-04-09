@@ -2,17 +2,13 @@
 import { assert } from "./utils.js";
 import { TriangleRenderer } from "./triangle.js";
 import { ParticlesRenderer } from "./particles.js";
-import GUI from "./widgets/gui.js";
-import AppRegistry from "./widgets/registry.js";
-import { StackedWidgets } from "./widgets/stack_widgets.js";
-import { CursorWidget } from "./widgets/cursor.js";
+import AppRegistry from "./gui/registry.js";
+import { StackedWidgets } from "./gui/stack_widgets.js";
 import CubeRenderer from "./cube.js";
 import PlaneRenderer from "./plane.js";
 import TextRenderer from "./text.js";
-import make_wasd from "./widgets/wasd.js";
-import wasd_keys from "./widgets/wasd.js";
 
-async function init() {
+async function init(canvas_name = 'canvas', canvas_resize_event_name = 'canvas_resize') {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
         alert("WebGPU adapter not found. Your browser may not support WebGPU.");
@@ -25,7 +21,7 @@ async function init() {
         throw new Error("Device not found");
     }
 
-    const canvas = document.getElementById("canvas");
+    const canvas = document.getElementById(canvas_name);
     assert(canvas, "Canvas not found!");
 
     /** @type {GPUCanvasContext} **/
@@ -33,7 +29,7 @@ async function init() {
     assert(context, "Context not found!");
     assert(context instanceof GPUCanvasContext, "Context has wrong type");
 
-    const canvas_resize_event = new CustomEvent('canvas_resize');
+    const canvas_resize_event = new CustomEvent(canvas_resize_event_name);
 
     const observer = new ResizeObserver(entries => {
         for (const entry of entries) {

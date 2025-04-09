@@ -1,8 +1,8 @@
 import Renderer from "./renderer.js";
 import Buffers from "./buffers.js";
 import make_ascii_sprite_sheet from "./bitmap_font.js";
-import GUI from "./widgets/gui.js";
-import { StackedWidgets } from "./widgets/stack_widgets.js";
+import GUI from "./gui/gui.js";
+import { StackedWidgets } from "./gui/stack_widgets.js";
 
 
 const shader_code = `
@@ -15,25 +15,20 @@ struct Config {
 };
 struct VertexOut { @builtin(position) pos: vec4f };
 
-@group(0) @binding(0) var<uniform> config: Config;
-@group(0) @binding(1) var<uniform> bg_color: vec4<f32>;
-@group(0) @binding(2) var<storage, read> text: array<u32>;
-@group(0) @binding(3) var font_sampler: sampler;
-@group(0) @binding(4) var font_texture: texture_2d<f32>;
+@group(0) @binding(0) var<storage, read> verts: array<vec4f>;
+@group(0) @binding(1) var<storage, read> ids: array<u32>;
 
-const QUAD = array<vec4<f32>, 4>(
-    vec4(-1.0,  1.0, 0.0, 1.0),
-    vec4( 1.0,  1.0, 0.0, 1.0),
-    vec4(-1.0, -1.0, 0.0, 1.0),
-    vec4( 1.0, -1.0, 0.0, 1.0),
-);
+@group(0) @binding(2) var<uniform> config: Config;
+@group(0) @binding(3) var<uniform> bg_color: vec4<f32>;
 
-const INDICES = array<u32, 6>(0, 1, 2, 2, 1, 3);
+@group(0) @binding(4) var<storage, read> text: array<u32>;
+@group(0) @binding(5) var font_sampler: sampler;
+@group(0) @binding(6) var font_texture: texture_2d<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
     var out: VertexOut;
-    out.pos = QUAD[INDICES[vi]];
+    out.pos = verts[ids[vi]];
     return out;
 }
 
@@ -94,6 +89,7 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
 
     // Debug values
     let bl = vec4f(0f);
+    let by = vec4f(char_byte / 128);
     let wh = vec4f(1f);
     let r = vec4f(1f, 0f, 0f, 1f);
     let g = vec4f(0f, 1f, 0f, 1f);
@@ -103,11 +99,22 @@ fn fs_main(in: VertexOut) -> @location(0) vec4f {
     var debug = mix(bl, g, f32(is_margin));
     debug = mix(debug, wh, f32((is_padding || is_out_of_bounds) && !is_margin));
     debug = mix(debug, b, f32(is_sprite_clipped && !is_margin && !is_out_of_bounds));
-    debug = mix(debug, pos_norm, f32(!is_bg));
+    debug = mix(debug, by, f32(!is_bg));
 
     return select(text_result, debug, bool(config.debug));
 }
 `
+
+function make_quad(pos) {
+    const verts = new Float32Array([
+        -1.0, 1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0, 1.0,
+        -1.0, -1.0, 0.0, 1.0,
+        1.0, -1.0, 0.0, 1.0,
+    ]);
+    const idx = new Uint32Array([0, 1, 2, 2, 1, 3]);
+    return [verts, idx];
+}
 
 export default class TextRenderer extends Renderer {
     /**
@@ -192,33 +199,19 @@ export default class TextRenderer extends Renderer {
             );
         }
 
+        const [verts, ids] = make_quad();
+
+        this.vertex_buf = this.buffers.create_buffer(verts, GPUBufferUsage.STORAGE);
+        this.ids_buf = this.buffers.create_buffer(ids, GPUBufferUsage.STORAGE);
+
         this.config = this.buffers.create_buffer(get_config(), GPUBufferUsage.UNIFORM, 'Config');
         this.bg_color = this.buffers.create_buffer(get_bg_color(), GPUBufferUsage.UNIFORM, 'Background');
+
         this.text_buf = this.buffers.create_buffer(get_text(), GPUBufferUsage.STORAGE);
         this.buffers.update_bind_group(this.sampler);
         this.buffers.update_bind_group(this.ascii_atlas_texture.createView());
 
-        this.shader = device.createShaderModule({
-            label: "TextRenderShader",
-            code: shader_code,
-        });
-
-        this.pipeline = device.createRenderPipeline({
-            label: "TextRenderPipeline",
-            layout: 'auto',
-            vertex: {
-                module: this.shader,
-                entryPoint: 'vs_main',
-            },
-            fragment: {
-                module: this.shader,
-                entryPoint: 'fs_main',
-                targets: [{
-                    format: "rgba8unorm",
-                }]
-            },
-            primitive: { topology: "triangle-list" },
-        });
+        this.pipeline = default_pipeline(device, shader_code);
         this.bind_group = this.buffers.get_bind_group(this.pipeline);
 
         this.render_callback = () => {
@@ -236,7 +229,7 @@ export default class TextRenderer extends Renderer {
 
             pass.setPipeline(this.pipeline);
             pass.setBindGroup(0, this.bind_group);
-            pass.draw(6);
+            pass.draw(ids.length);
             pass.end();
 
             device.queue.submit([command_encoder.finish()]);
@@ -299,3 +292,26 @@ let preprocess = (
     return out;
 };
 
+
+function default_pipeline(device, shader_code) {
+    const shader = device.createShaderModule({
+        label: "TextRenderShader",
+        code: shader_code,
+    });
+    return device.createRenderPipeline({
+        label: "TextRenderPipeline",
+        layout: 'auto',
+        vertex: {
+            module: shader,
+            entryPoint: 'vs_main',
+        },
+        fragment: {
+            module: shader,
+            entryPoint: 'fs_main',
+            targets: [{
+                format: "rgba8unorm",
+            }]
+        },
+        primitive: { topology: "triangle-list" },
+    });
+}

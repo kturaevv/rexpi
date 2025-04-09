@@ -2,7 +2,13 @@ import { assert } from "../utils.js";
 import make_widget from "./make.js";
 import Widget from "./widget.js";
 
+/**
+ * @class GUI
+ * @property {Array<[string, Widget]>} elements
+ * @property {Widget} [*] - any property added is a widget
+ * */
 export default class GUI {
+
     constructor() {
         this.elements = [];
     }
@@ -24,10 +30,13 @@ export default class GUI {
     * @returns {Array<Widget>}
     */
     widgets() {
-        return this.elements.flatMap(([_, widget]) => widget.has_child_widgets() ? widget.get_child_widgets() : widget);
+        return this.elements.flatMap(
+            ([_, widget]) => widget.has_child_widgets() ? widget.get_child_widgets() : widget
+        );
     }
 
     data() {
+        // Return an object with values from all widgets { widget_name: widget_data }
         return this.elements.reduce((accumulator, [name, widget]) => {
             accumulator[name] = widget.get_value();
             return accumulator;

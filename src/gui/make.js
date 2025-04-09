@@ -5,6 +5,7 @@ import { CursorWidget } from "./cursor.js";
 import { KeyWidget } from "./keyboard.js";
 import { NumberWidget } from "./number.js";
 import { SliderWidget } from "./slider.js";
+import { WidgetT } from "./types.js";
 
 export default function make_widget(name, input, label) {
     label = label === undefined ? name : label;
@@ -26,13 +27,13 @@ export default function make_widget(name, input, label) {
                     switch (typeof input[0]) {
                         case 'string':
                             switch (input[0]) {
-                                case 'rgba':
+                                case WidgetT.RGBA:
                                     return new ColorWidget(label, input.slice(1));
-                                case "cursor":
+                                case WidgetT.CURSOR:
                                     return new CursorWidget(label);
-                                case "key":
+                                case WidgetT.KEY:
                                     return new KeyWidget(label, ...input.slice(1));
-                                case "btn":
+                                case WidgetT.BTN:
                                     return new ButtonWidget(label, ...input.slice(1));
                                 default:
                                     throw new Error(`Invalid special case input! ${input}`);

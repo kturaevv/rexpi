@@ -1,8 +1,8 @@
 import { quat, mat4, vec3, vec2 } from "gl-matrix";
 import Renderer from "./renderer.js";
 import Buffers from "./buffers.js";
-import GUI from "./widgets/gui.js";
-import wasd_keys from "./widgets/wasd.js";
+import GUI from "./gui/gui.js";
+import wasd_keys from "./gui/wasd.js";
 
 const shader_code = `
 struct Settings { fov: f32, near: f32, far: f32, show_axis: u32}

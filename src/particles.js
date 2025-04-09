@@ -1,6 +1,6 @@
 import Renderer from "./renderer.js";
 import { assert, is_bool, random } from "./utils.js";
-import GUI from "./widgets/gui.js";
+import GUI from "./gui/gui.js";
 import SHADERS from "./shaders.js";
 
 export default function () { throw new Error("Unimplemented!!!"); }
