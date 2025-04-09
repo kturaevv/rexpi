@@ -1,36 +1,23 @@
-import { mat3, mat4, vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import Renderer from "./renderer.js";
 import GUI from "./gui/gui.js";
 import wasd_keys from "./gui/wasd.js";
 import Buffers from "./buffers.js";
 
 const shader = `
-struct Canvas {
-    width: f32,
-    height: f32,
-}
-
 struct VertexOut {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
 }
 
 @group(0) @binding(0) var<uniform> view_projection_matrix: mat4x4<f32>; 
-@group(0) @binding(1) var<storage, read> vertex_buffer: array<f32>;
-@group(0) @binding(2) var<storage, read> index_buffer: array<u32>;
+@group(0) @binding(1) var<storage, read> vertex_buffer: array<vec4f>;
+
+@group(1) @binding(0) var<storage, read> index_buffer: array<u32>;
 
 @vertex 
-fn vs_main(
-    @builtin(vertex_index) vi: u32,
-    @builtin(instance_index) ii: u32,
-) -> VertexOut {
-    let index = index_buffer[ii * 3 + vi];
-
-    var vertex = vec4(0.0, 0.0, 0.0, 1.0);
-    for (var i: u32 = 0; i < 3; i++) {
-        vertex[i] = vertex_buffer[index * 3 + i];
-    }
-
+fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
+    var vertex = vertex_buffer[index_buffer[vi]];
     var out: VertexOut;
     out.position = view_projection_matrix * vertex;
     out.color = vec4(
@@ -46,39 +33,80 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 }
 `
 
+const debug_shader = `
+@group(0) @binding(0) var<uniform> view_projection_matrix: mat4x4<f32>; 
+@group(0) @binding(1) var<storage, read> vertex_buffer: array<vec4f>;
+
+@group(1) @binding(0) var<storage, read> d_index_buffer: array<u32>;
+
+@vertex 
+fn vs_main(
+    @builtin(vertex_index) vi: u32,
+    @builtin(instance_index) ii: u32,
+) -> @builtin(position) vec4f {
+    var vertex = vertex_buffer[d_index_buffer[vi]];
+    let out = view_projection_matrix * vertex;
+    return out;
+}
+
+@fragment
+fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    return vec4(0f, 1f, 1f, 1f);
+}
+`
 function make_cube() {
     const verts = new Float32Array([
         // Front face
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
-        -1.0, 1.0, 1.0,
+        -1.0, -1.0, 1.0, 1.0,
+        1.0, -1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+        -1.0, 1.0, 1.0, 1.0,
         // Back face
-        -1.0, -1.0, -1.0,
-        -1.0, 1.0, -1.0,
-        1.0, 1.0, -1.0,
-        1.0, -1.0, -1.0,
+        -1.0, -1.0, -1.0, 1.0,
+        -1.0, 1.0, -1.0, 1.0,
+        1.0, 1.0, -1.0, 1.0,
+        1.0, -1.0, -1.0, 1.0,
     ]);
     const idx = new Uint32Array([
-        // Front
         0, 1, 2, 0, 2, 3,
-        // Right
         1, 7, 6, 1, 6, 2,
-        // Back
         7, 4, 5, 7, 5, 6,
-        // Left
         4, 0, 3, 4, 3, 5,
-        // Top
         3, 2, 6, 3, 6, 5,
-        // Bottom
         4, 7, 1, 4, 1, 0,
     ]);
     return [verts, idx];
 }
 
+function make_debug_indices(triangle_indices) {
+    const edgeset = new Set();
+
+    for (let i = 0; i < triangle_indices.length; i += 3) {
+        const edges = [
+            [triangle_indices[i], triangle_indices[i + 1]],
+            [triangle_indices[i + 1], triangle_indices[i + 2]],
+            [triangle_indices[i + 2], triangle_indices[i]]
+        ];
+
+        edges.forEach(([a, b]) => {
+            const edge = a < b ? `${a}-${b}` : `${b}-${a}`;
+            edgeset.add(edge);
+        });
+    }
+
+    const line_indices = [];
+    edgeset.forEach(edge => {
+        const [a, b] = edge.split('-').map(Number);
+        line_indices.push(a, b);
+    });
+
+    return new Uint32Array(line_indices);
+}
+
 export default class CubeRenderer extends Renderer {
     /**
      * @param {GPUDevice} device 
+     * @param {GPUCanvasContext} context
      * */
     constructor(device, context) {
         super();
@@ -86,6 +114,7 @@ export default class CubeRenderer extends Renderer {
         this.gui = new GUI();
         this.gui.add('camera', wasd_keys());
         this.gui.add('debug', false, "Debug");
+        this.gui.add('rotate', true, "Rotate");
 
         this.settings = {
             fov: 60 * Math.PI / 180,
@@ -99,20 +128,107 @@ export default class CubeRenderer extends Renderer {
         this.context = context;
 
         const [vertices, indices] = make_cube();
+        const debug_indices = make_debug_indices(indices);
+        {
+            this.buffers = new Buffers(device, "CubeBuffer");
+            this.view_uniform = this.buffers.create_buffer(mat4.create(), GPUBufferUsage.UNIFORM, 'view matrix');
+            this.vertex_buffer = this.buffers.create_buffer(vertices, GPUBufferUsage.STORAGE, 'vertices');
+            this.idx_buf = this.buffers.create_buffer(indices, GPUBufferUsage.STORAGE, 'indices');
+            this.d_idx_buf = this.buffers.create_buffer(debug_indices, GPUBufferUsage.STORAGE, 'd_indices');
+        }
 
-        this.resources = new Buffers(device, "Cube buffer");
-        this.vertex_buffer = this.resources.create_buffer(vertices, GPUBufferUsage.STORAGE, 'vertices');
-        this.index_buffer = this.resources.create_buffer(indices, GPUBufferUsage.STORAGE, 'indices');
-        this.view_matrix_uniform = this.resources.create_buffer(mat4.create(), GPUBufferUsage.UNIFORM, 'view matrix');
+        {
+            const group_0 = device.createBindGroupLayout({
+                label: "CommonGroup",
+                entries: [
+                    { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
+                    { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                ]
+            });
+            const group_1 = device.createBindGroupLayout({
+                label: "IndexGroup",
+                entries: [
+                    { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                ]
+            });
+            const group_2 = device.createBindGroupLayout({
+                label: "DebugIndexGroup",
+                entries: [
+                    { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                ]
+            });
 
-        this.pipeline = this.create_pipeline();
-        this.bind_group = this.create_bind_group();
+            const render_layout = device.createPipelineLayout({
+                label: "RenderLayout",
+                bindGroupLayouts: [group_0, group_1],
+            });
+            const debug_layout = device.createPipelineLayout({
+                label: "DebugLayout",
+                bindGroupLayouts: [group_0, group_2],
+            });
 
-        const update_view = () => {
-            this.update_view_matrix();
-            this.update_render_pass_descriptor();
+            this.pipeline = this.create_pipeline(shader, render_layout);
+            this.d_pipeline = this.create_pipeline(debug_shader, debug_layout, 'line-list');
+
+            this.bind_group_0 = device.createBindGroup({
+                label: "CommonGroup",
+                layout: group_0,
+                entries: [
+                    { binding: 0, resource: { buffer: this.view_uniform } },
+                    { binding: 1, resource: { buffer: this.vertex_buffer } },
+                ]
+            });
+            this.bind_group_1 = device.createBindGroup({
+                label: "IndexGroup",
+                layout: group_1,
+                entries: [
+                    { binding: 0, resource: { buffer: this.idx_buf } },
+                ]
+            });
+            this.bind_group_2 = device.createBindGroup({
+                label: "DebugIndexGroup",
+                layout: group_2,
+                entries: [
+                    { binding: 0, resource: { buffer: this.d_idx_buf } },
+                ]
+            });
+        }
+
+        this.update_view_matrix();
+        this.update_render_pass_descriptor();
+
+        let rotation = 0;
+        this.render_callback = () => {
+            if (!this.is_rendering) return;
+
+            if (this.gui.rotate.value) {
+                rotation += 0.003;
+                this.rotate_cube(rotation);
+            }
+
+            this.render_pass_descriptor.colorAttachments[0].view =
+                context.getCurrentTexture().createView();
+
+            const command_encoder = device.createCommandEncoder({ label: "Cube command encoder" });
+            const pass = command_encoder.beginRenderPass(this.render_pass_descriptor);
+            pass.setBindGroup(0, this.bind_group_0);
+            pass.setBindGroup(1, this.bind_group_1);
+            pass.setPipeline(this.pipeline);
+            pass.draw(indices.length);
+            pass.end();
+
+            if (this.gui.debug.value === true) {
+                const d_pass = command_encoder.beginRenderPass(this.render_pass_descriptor);
+                d_pass.setBindGroup(0, this.bind_group_0);
+                d_pass.setBindGroup(1, this.bind_group_2);
+                d_pass.setPipeline(this.d_pipeline);
+                d_pass.draw(indices.length);
+                d_pass.end();
+            }
+
+            device.queue.submit([command_encoder.finish()]);
+            requestAnimationFrame(this.render_callback);
         };
-        update_view();
 
         const move_camera_eye = (key_label) => {
             const key = key_label.toLowerCase();
@@ -124,49 +240,30 @@ export default class CubeRenderer extends Renderer {
             this.update_view_matrix();
         };
 
-        let rotation = 0;
-        this.render_callback = () => {
-            if (!this.is_rendering) return;
-
-            rotation += 0.003;
-            const model_matrix = mat4.create();
-            mat4.rotateY(model_matrix, model_matrix, rotation);
-            mat4.rotateX(model_matrix, model_matrix, rotation);
-
-            const view_matrix_after = mat4.create();
-            mat4.multiply(view_matrix_after, this.view_matrix, model_matrix);
-            device.queue.writeBuffer(this.view_matrix_uniform, 0, view_matrix_after);
-
-            this.render_pass_descriptor.colorAttachments[0].view =
-                context.getCurrentTexture().createView();
-
-            const command_encoder = device.createCommandEncoder({ label: "Cube command encoder" });
-            const render_pass = command_encoder.beginRenderPass(this.render_pass_descriptor);
-            render_pass.setBindGroup(0, this.bind_group);
-            render_pass.setPipeline(this.pipeline);
-            render_pass.draw(3, indices.length / 3);
-            render_pass.end();
-
-            device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
+        const update_view = () => {
+            this.update_view_matrix();
+            this.update_render_pass_descriptor();
         };
 
-        document.addEventListener(this.gui.camera.w.event, () => move_camera_eye(this.gui.camera.w.key));
-        document.addEventListener(this.gui.camera.a.event, () => move_camera_eye(this.gui.camera.a.key));
-        document.addEventListener(this.gui.camera.s.event, () => move_camera_eye(this.gui.camera.s.key));
-        document.addEventListener(this.gui.camera.d.event, () => move_camera_eye(this.gui.camera.d.key));
+        this.gui.camera.w.listen(() => move_camera_eye(this.gui.camera.w.key));
+        this.gui.camera.a.listen(() => move_camera_eye(this.gui.camera.a.key));
+        this.gui.camera.s.listen(() => move_camera_eye(this.gui.camera.s.key));
+        this.gui.camera.d.listen(() => move_camera_eye(this.gui.camera.d.key));
         document.addEventListener('canvas_resize', update_view);
     }
 
-    create_pipeline() {
+    create_pipeline(shader, layout = 'auto', topology = 'triangle-list') {
         const shader_module = this.device.createShaderModule({
-            label: "Cube shader",
+            label: "CubeShader",
             code: shader
         });
-
         return this.device.createRenderPipeline({
-            label: "Cube render pipeline",
-            layout: 'auto',
+            label: "CubeRenderPipeline",
+            layout: layout,
+            primitive: {
+                topology: topology,
+                cullMode: 'back',
+            },
             vertex: {
                 module: shader_module,
                 entryPoint: 'vs_main',
@@ -184,18 +281,15 @@ export default class CubeRenderer extends Renderer {
         });
     }
 
-    create_bind_group() {
-        return this.device.createBindGroup({
-            label: "Cube bind group",
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: { buffer: this.view_matrix_uniform } },
-                { binding: 1, resource: { buffer: this.vertex_buffer } },
-                { binding: 2, resource: { buffer: this.index_buffer } },
-            ]
-        });
-    }
+    rotate_cube(rotation) {
+        const model_matrix = mat4.create();
+        mat4.rotateY(model_matrix, model_matrix, rotation);
+        mat4.rotateX(model_matrix, model_matrix, rotation);
 
+        const view_matrix_after = mat4.create();
+        mat4.multiply(view_matrix_after, this.view_matrix, model_matrix);
+        this.device.queue.writeBuffer(this.view_uniform, 0, view_matrix_after);
+    }
     update_view_matrix() {
         this.view_matrix = mat4.create();
         const proj_matrix = mat4.create();
@@ -209,7 +303,7 @@ export default class CubeRenderer extends Renderer {
         vec3.add(this.look_at, this.eye, [0, 0, 10]);
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
-        this.device.queue.writeBuffer(this.view_matrix_uniform, 0, this.view_matrix);
+        this.device.queue.writeBuffer(this.view_uniform, 0, this.view_matrix);
     }
 
     update_render_pass_descriptor() {
@@ -227,7 +321,7 @@ export default class CubeRenderer extends Renderer {
             colorAttachments: [
                 {
                     clearValue: [1, 1, 1, 1.0],
-                    loadOp: "clear",
+                    loadOp: "load",
                     storeOp: "store",
                     view: this.context.getCurrentTexture().createView(),
                 },

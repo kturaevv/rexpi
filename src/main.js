@@ -84,7 +84,7 @@ async function main() {
     sections.register(render_opts.plane.id, plane_render);
     sections.register(render_opts.text.id, text_render);
 
-    document.getElementById(render_opts.text.id).click();
+    document.getElementById(render_opts.cube.id).click();
 }
 
 await main();
