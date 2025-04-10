@@ -4,22 +4,28 @@ import GUI from "./gui/gui.js";
 import wasd_keys from "./gui/wasd.js";
 import Buffers from "./buffers.js";
 
-const shader = `
+
+const common = `
+@group(0) @binding(0) var<uniform> view_matrix: mat4x4<f32>; 
+@group(0) @binding(1) var<storage, read> vertex_buffer: array<vec4f>;
+@group(0) @binding(2) var<storage, read> vertex_transform: array<mat4x4<f32>>;
+`
+
+const shader = common + `
 struct VertexOut {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
 }
 
-@group(0) @binding(0) var<uniform> view_projection_matrix: mat4x4<f32>; 
-@group(0) @binding(1) var<storage, read> vertex_buffer: array<vec4f>;
-
 @group(1) @binding(0) var<storage, read> index_buffer: array<u32>;
 
 @vertex 
 fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOut {
-    var vertex = vertex_buffer[index_buffer[vi]];
+    let i = index_buffer[vi];
+    var vertex = vertex_buffer[i];
+
     var out: VertexOut;
-    out.position = view_projection_matrix * vertex;
+    out.position = view_matrix * vertex_transform[i] * vertex;
     out.color = vec4(
         (vertex.xyz + 1.0) * 0.5, // Normalize position to 0-1 range
         1.0
@@ -33,19 +39,13 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
 }
 `
 
-const debug_shader = `
-@group(0) @binding(0) var<uniform> view_projection_matrix: mat4x4<f32>; 
-@group(0) @binding(1) var<storage, read> vertex_buffer: array<vec4f>;
-
+const debug_shader = common + `
 @group(1) @binding(0) var<storage, read> d_index_buffer: array<u32>;
 
 @vertex 
-fn vs_main(
-    @builtin(vertex_index) vi: u32,
-    @builtin(instance_index) ii: u32,
-) -> @builtin(position) vec4f {
-    var vertex = vertex_buffer[d_index_buffer[vi]];
-    let out = view_projection_matrix * vertex;
+fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+    let i = d_index_buffer[vi];
+    let out = view_matrix * vertex_transform[i] * vertex_buffer[i];
     return out;
 }
 
@@ -103,6 +103,14 @@ function make_debug_indices(triangle_indices) {
     return new Uint32Array(line_indices);
 }
 
+function make_tranform_models(verts) {
+    const transform = new Float32Array(verts.length * 4);
+    for (let i = 0; i < verts.length; i += 4) {
+        transform.set(mat4.create(), i * 4);
+    }
+    return transform;
+}
+
 export default class CubeRenderer extends Renderer {
     /**
      * @param {GPUDevice} device 
@@ -129,10 +137,13 @@ export default class CubeRenderer extends Renderer {
 
         const [vertices, indices] = make_cube();
         const debug_indices = make_debug_indices(indices);
+        this.vmodel = make_tranform_models(vertices);
+
         {
             this.buffers = new Buffers(device, "CubeBuffer");
             this.view_uniform = this.buffers.create_buffer(mat4.create(), GPUBufferUsage.UNIFORM, 'view matrix');
             this.vertex_buffer = this.buffers.create_buffer(vertices, GPUBufferUsage.STORAGE, 'vertices');
+            this.model_buf = this.buffers.create_buffer(this.vmodel, GPUBufferUsage.STORAGE, 'transform');
             this.idx_buf = this.buffers.create_buffer(indices, GPUBufferUsage.STORAGE, 'indices');
             this.d_idx_buf = this.buffers.create_buffer(debug_indices, GPUBufferUsage.STORAGE, 'd_indices');
         }
@@ -143,6 +154,7 @@ export default class CubeRenderer extends Renderer {
                 entries: [
                     { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
                     { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                    { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
                 ]
             });
             const group_1 = device.createBindGroupLayout({
@@ -176,6 +188,7 @@ export default class CubeRenderer extends Renderer {
                 entries: [
                     { binding: 0, resource: { buffer: this.view_uniform } },
                     { binding: 1, resource: { buffer: this.vertex_buffer } },
+                    { binding: 2, resource: { buffer: this.model_buf } },
                 ]
             });
             this.bind_group_1 = device.createBindGroup({
@@ -197,13 +210,11 @@ export default class CubeRenderer extends Renderer {
         this.update_view_matrix();
         this.update_render_pass_descriptor();
 
-        let rotation = 0;
         this.render_callback = () => {
             if (!this.is_rendering) return;
 
             if (this.gui.rotate.value) {
-                rotation += 0.003;
-                this.rotate_cube(rotation);
+                this.rotate_cube();
             }
 
             this.render_pass_descriptor.colorAttachments[0].view =
@@ -281,17 +292,18 @@ export default class CubeRenderer extends Renderer {
         });
     }
 
-    rotate_cube(rotation) {
-        const model_matrix = mat4.create();
-        mat4.rotateY(model_matrix, model_matrix, rotation);
-        mat4.rotateX(model_matrix, model_matrix, rotation);
-
-        const view_matrix_after = mat4.create();
-        mat4.multiply(view_matrix_after, this.view_matrix, model_matrix);
-        this.device.queue.writeBuffer(this.view_uniform, 0, view_matrix_after);
+    rotate_cube() {
+        for (let t = 0; t < this.vmodel.length; t += 16) {
+            let matrix = this.vmodel.subarray(t, t + 16);
+            let v = 0.1;
+            mat4.rotateX(matrix, matrix, v * Math.PI / 180);
+            mat4.rotateY(matrix, matrix, v * Math.PI / 180);
+            mat4.rotateZ(matrix, matrix, v * Math.PI / 180);
+        }
+        this.device.queue.writeBuffer(this.model_buf, 0, this.vmodel);
     }
+
     update_view_matrix() {
-        this.view_matrix = mat4.create();
         const proj_matrix = mat4.create();
         mat4.perspective(
             proj_matrix,
@@ -300,8 +312,11 @@ export default class CubeRenderer extends Renderer {
             this.settings.near_plane,
             this.settings.far_plane
         );
-        vec3.add(this.look_at, this.eye, [0, 0, 10]);
+
+        this.view_matrix = mat4.create();
         mat4.lookAt(this.view_matrix, this.eye, this.look_at, [0, 1, 0]);
+
+        // view projection matrix
         mat4.multiply(this.view_matrix, proj_matrix, this.view_matrix);
         this.device.queue.writeBuffer(this.view_uniform, 0, this.view_matrix);
     }
