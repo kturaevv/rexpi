@@ -13,11 +13,31 @@ export default class Renderer {
 
     render() {
         this.is_rendering = true;
-        requestAnimationFrame(this.render_callback);
+
+        const loop = () => {
+            if (!this.is_rendering) { return }
+
+            this.render_callback();
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
     }
 
     terminate() {
         this.is_rendering = false;
+
+        Object.keys(this).forEach(attr => {
+            if (this[attr] && typeof this[attr].destroy === 'function') {
+                console.log(`Calling destroy for ${attr}`);
+                this[attr].destroy();
+            } else {
+                console.log(`Setting ${attr} to null`);
+                this[attr] = null;
+            }
+        });
     }
+
 }
 

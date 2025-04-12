@@ -233,7 +233,6 @@ export default class TextRenderer extends Renderer {
             pass.end();
 
             device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
         };
     }
 }

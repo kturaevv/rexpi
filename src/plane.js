@@ -179,7 +179,6 @@ export default class PlaneRenderer extends Renderer {
         let /** @type {GPUTexture} */ multisampling_texture;
 
         this.render_callback = () => {
-            if (!this.is_rendering) return;
             const enc = device.createCommandEncoder();
             const canvas_texture = this.context.getCurrentTexture();
 
@@ -216,7 +215,6 @@ export default class PlaneRenderer extends Renderer {
             pass.draw(6);
             pass.end();
             device.queue.submit([enc.finish()]);
-            requestAnimationFrame(this.render_callback);
         }
 
         const move_camera_eye = (key_label) => {

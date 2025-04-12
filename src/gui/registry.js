@@ -16,8 +16,8 @@ export default class AppRegistry {
 
         if (this.renderer) {
             this.renderer.is_rendering = false;
-
         }
+
         for (const gui of this.guis) {
             gui.make_invisible();
         }

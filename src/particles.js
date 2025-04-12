@@ -90,8 +90,6 @@ export class ParticlesRenderer extends Renderer {
         init();
 
         this.render_callback = () => {
-            if (!this.is_rendering) { return; }
-
             const render_pass_descriptor = {
                 label: "Particles pass encoder",
                 colorAttachments: [
@@ -124,7 +122,6 @@ export class ParticlesRenderer extends Renderer {
             render_pass.end();
 
             device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
         };
 
         this.cleanup_callback = () => {

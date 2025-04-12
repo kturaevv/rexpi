@@ -77,8 +77,6 @@ export class TriangleRenderer extends Renderer {
         device.queue.writeBuffer(vertex_buffer, 0, triangle_vertices);
 
         this.render_callback = () => {
-            if (!this.is_rendering) { return; }
-
             const command_encoder = device.createCommandEncoder({});
             {
                 var pass = command_encoder.beginRenderPass({
@@ -97,8 +95,8 @@ export class TriangleRenderer extends Renderer {
                 pass.end();
             }
             device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
         };
+
         this.vertex_buffer = vertex_buffer;
         this.pipeline = render_pipeline;
         return this;

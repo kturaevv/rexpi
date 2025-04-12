@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat4 } from "gl-matrix";
 import Renderer from "./renderer.js";
 import GUI from "./gui/gui.js";
 import wasd_keys from "./gui/wasd.js";
@@ -211,8 +211,6 @@ export default class CubeRenderer extends Renderer {
         this.update_render_pass_descriptor();
 
         this.render_callback = () => {
-            if (!this.is_rendering) return;
-
             if (this.gui.rotate.value) {
                 this.rotate_cube();
             }
@@ -236,9 +234,7 @@ export default class CubeRenderer extends Renderer {
                 d_pass.draw(indices.length);
                 d_pass.end();
             }
-
             device.queue.submit([command_encoder.finish()]);
-            requestAnimationFrame(this.render_callback);
         };
 
         const move_camera_eye = (key_label) => {
